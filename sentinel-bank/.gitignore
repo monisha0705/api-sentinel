@@ -31,3 +31,7 @@ build/
 
 ### VS Code ###
 .vscode/
+benchmark-credentials.properties
+ResetBenchmarkCredentials.java
+ResetBenchmarkCredentials.class
+classpath.txt
