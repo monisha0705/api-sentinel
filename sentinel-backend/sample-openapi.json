@@ -1,0 +1,51 @@
+
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Sentinel Bank API",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/accounts": {
+      "get": {
+        "summary": "Get my accounts",
+        "operationId": "getMyAccounts",
+        "tags": ["Accounts"]
+      }
+    },
+    "/api/accounts/{id}": {
+      "get": {
+        "summary": "Get account by ID",
+        "operationId": "getAccountById",
+        "tags": ["Accounts"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
+      }
+    },
+    "/api/payments": {
+      "post": {
+        "summary": "Create payment",
+        "operationId": "createPayment",
+        "tags": ["Payments"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
