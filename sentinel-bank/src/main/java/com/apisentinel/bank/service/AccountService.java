@@ -5,6 +5,7 @@ import com.apisentinel.bank.dto.AccountResponse;
 import com.apisentinel.bank.entity.BankUser;
 import com.apisentinel.bank.repository.AccountRepository;
 import com.apisentinel.bank.repository.BankUserRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -18,6 +19,9 @@ public class AccountService {
 
     private final AccountRepository accountRepository;
     private final BankUserRepository bankUserRepository;
+
+    @Value("${sentinel.bank.authorization-mode:SECURE}")
+    private String authorizationMode;
 
     public AccountService(
             AccountRepository accountRepository,
@@ -56,7 +60,10 @@ public class AccountService {
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         return accountRepository.findById(accountId)
-                .filter(account -> account.getOwner().getId().equals(user.getId()))
+                .filter(account ->
+                        authorizationMode.equalsIgnoreCase("VULNERABLE")
+                        || account.getOwner().getId().equals(user.getId())
+                )
                 .map(account -> new AccountResponse(
                         account.getId(),
                         account.getAccountNumber(),
