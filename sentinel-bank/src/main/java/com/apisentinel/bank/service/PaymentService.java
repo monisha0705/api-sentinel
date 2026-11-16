@@ -1,5 +1,4 @@
 
-
 package com.apisentinel.bank.service;
 
 import com.apisentinel.bank.dto.PaymentRequest;
@@ -7,15 +6,19 @@ import com.apisentinel.bank.dto.PaymentResponse;
 import com.apisentinel.bank.entity.Account;
 import com.apisentinel.bank.entity.BankUser;
 import com.apisentinel.bank.entity.Payment;
+import com.apisentinel.bank.entity.PaymentEvent;
 import com.apisentinel.bank.repository.AccountRepository;
 import com.apisentinel.bank.repository.BankUserRepository;
+import com.apisentinel.bank.repository.PaymentEventRepository;
 import com.apisentinel.bank.repository.PaymentRepository;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -24,14 +27,18 @@ public class PaymentService {
     private final PaymentRepository paymentRepository;
     private final AccountRepository accountRepository;
     private final BankUserRepository bankUserRepository;
+    private final PaymentEventRepository paymentEventRepository;
 
     public PaymentService(
             PaymentRepository paymentRepository,
             AccountRepository accountRepository,
-            BankUserRepository bankUserRepository) {
+            BankUserRepository bankUserRepository,
+            PaymentEventRepository paymentEventRepository) {
+
         this.paymentRepository = paymentRepository;
         this.accountRepository = accountRepository;
         this.bankUserRepository = bankUserRepository;
+        this.paymentEventRepository = paymentEventRepository;
     }
 
     @Transactional
@@ -65,7 +72,19 @@ public class PaymentService {
                 request.beneficiaryReference()
         );
 
-        return toResponse(paymentRepository.save(payment));
+        Payment savedPayment = paymentRepository.save(payment);
+
+        recordEvent(
+                savedPayment,
+                user,
+                "CREATED",
+                null,
+                savedPayment.getStatus(),
+                Map.of("beneficiaryReference",
+                        savedPayment.getBeneficiaryReference())
+        );
+
+        return toResponse(savedPayment);
     }
 
     @Transactional(readOnly = true)
@@ -100,12 +119,23 @@ public class PaymentService {
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Payment not found"));
 
+        String previousStatus = payment.getStatus();
+
         try {
             payment.approve(user);
         } catch (IllegalStateException exception) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT, exception.getMessage());
         }
+
+        recordEvent(
+                payment,
+                user,
+                "APPROVED",
+                previousStatus,
+                payment.getStatus(),
+                null
+        );
 
         return toResponse(payment);
     }
@@ -122,6 +152,8 @@ public class PaymentService {
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Payment not found"));
 
+        String previousStatus = payment.getStatus();
+
         try {
             payment.cancel();
         } catch (IllegalStateException exception) {
@@ -129,7 +161,36 @@ public class PaymentService {
                     HttpStatus.CONFLICT, exception.getMessage());
         }
 
+        recordEvent(
+                payment,
+                user,
+                "CANCELLED",
+                previousStatus,
+                payment.getStatus(),
+                null
+        );
+
         return toResponse(payment);
+    }
+
+    private void recordEvent(
+            Payment payment,
+            BankUser actor,
+            String eventType,
+            String fromStatus,
+            String toStatus,
+            Map<String, Object> details) {
+
+        PaymentEvent event = new PaymentEvent(
+                payment,
+                actor,
+                eventType,
+                fromStatus,
+                toStatus,
+                details
+        );
+
+        paymentEventRepository.save(event);
     }
 
     private BankUser getAuthenticatedUser(Authentication authentication) {
