@@ -1,0 +1,152 @@
+
+
+package com.apisentinel.bank.service;
+
+import com.apisentinel.bank.dto.PaymentRequest;
+import com.apisentinel.bank.dto.PaymentResponse;
+import com.apisentinel.bank.entity.Account;
+import com.apisentinel.bank.entity.BankUser;
+import com.apisentinel.bank.entity.Payment;
+import com.apisentinel.bank.repository.AccountRepository;
+import com.apisentinel.bank.repository.BankUserRepository;
+import com.apisentinel.bank.repository.PaymentRepository;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.UUID;
+
+@Service
+public class PaymentService {
+
+    private final PaymentRepository paymentRepository;
+    private final AccountRepository accountRepository;
+    private final BankUserRepository bankUserRepository;
+
+    public PaymentService(
+            PaymentRepository paymentRepository,
+            AccountRepository accountRepository,
+            BankUserRepository bankUserRepository) {
+        this.paymentRepository = paymentRepository;
+        this.accountRepository = accountRepository;
+        this.bankUserRepository = bankUserRepository;
+    }
+
+    @Transactional
+    public PaymentResponse createPayment(
+            PaymentRequest request,
+            Authentication authentication) {
+
+        BankUser user = getAuthenticatedUser(authentication);
+
+        Account account = accountRepository.findById(request.sourceAccountId())
+                .filter(a -> a.getOwner().getId().equals(user.getId()))
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Account not found"));
+
+        if (!"ACTIVE".equals(account.getStatus())) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "Source account is not active");
+        }
+
+        if (!account.getCurrency().equals(request.currency())) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Currency does not match source account");
+        }
+
+        Payment payment = new Payment(
+                account,
+                user,
+                request.amount(),
+                request.currency(),
+                request.beneficiaryReference()
+        );
+
+        return toResponse(paymentRepository.save(payment));
+    }
+
+    @Transactional(readOnly = true)
+    public PaymentResponse getPaymentById(
+            UUID paymentId,
+            Authentication authentication) {
+
+        BankUser user = getAuthenticatedUser(authentication);
+
+        Payment payment = paymentRepository.findById(paymentId)
+                .filter(p -> p.getCreatedBy().getId().equals(user.getId()))
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Payment not found"));
+
+        return toResponse(payment);
+    }
+
+    @Transactional
+    public PaymentResponse approvePayment(
+            UUID paymentId,
+            Authentication authentication) {
+
+        BankUser user = getAuthenticatedUser(authentication);
+
+        if (!"ADMIN".equals(user.getRole())) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Only administrators can approve payments");
+        }
+
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Payment not found"));
+
+        try {
+            payment.approve(user);
+        } catch (IllegalStateException exception) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT, exception.getMessage());
+        }
+
+        return toResponse(payment);
+    }
+
+    @Transactional
+    public PaymentResponse cancelPayment(
+            UUID paymentId,
+            Authentication authentication) {
+
+        BankUser user = getAuthenticatedUser(authentication);
+
+        Payment payment = paymentRepository.findById(paymentId)
+                .filter(p -> p.getCreatedBy().getId().equals(user.getId()))
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Payment not found"));
+
+        try {
+            payment.cancel();
+        } catch (IllegalStateException exception) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT, exception.getMessage());
+        }
+
+        return toResponse(payment);
+    }
+
+    private BankUser getAuthenticatedUser(Authentication authentication) {
+        return bankUserRepository.findByUsername(authentication.getName())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.UNAUTHORIZED, "User not found"));
+    }
+
+    private PaymentResponse toResponse(Payment payment) {
+        return new PaymentResponse(
+                payment.getId(),
+                payment.getSourceAccount().getId(),
+                payment.getAmount(),
+                payment.getCurrency(),
+                payment.getBeneficiaryReference(),
+                payment.getStatus(),
+                payment.getCreatedAt()
+        );
+    }
+}
