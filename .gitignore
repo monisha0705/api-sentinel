@@ -3,6 +3,7 @@
 *.class
 
 # Node / React
+.sentinel-frontend/
 **/node_modules/
 **/dist/
 
