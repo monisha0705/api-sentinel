@@ -36,12 +36,12 @@ public class FindingPersistenceService {
     }
 
     private SecurityFindingEntity updateExisting(
-            SecurityFindingEntity entity,
-            SecurityFinding finding) {
+        SecurityFindingEntity entity,
+        SecurityFinding finding) {
 
-        // We'll add update support to the entity in the next step.
-        return entity;
-    }
+    entity.updateFrom(finding);
+    return entity;
+}
 
     public List<SecurityFindingEntity> getAllFindings() {
         return repository.findAllByOrderByDetectedAtDesc();

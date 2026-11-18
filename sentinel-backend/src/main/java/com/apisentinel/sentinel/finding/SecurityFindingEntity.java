@@ -60,7 +60,18 @@ public class SecurityFindingEntity {
         this.evidence = finding.evidence();
         this.detectedAt = finding.detectedAt();
     }
-
+    public void updateFrom(SecurityFinding finding) {
+    this.vulnerabilityType = finding.vulnerabilityType();
+    this.severity = finding.severity();
+    this.identity = finding.identity();
+    this.endpoint = finding.endpoint();
+    this.targetResource = finding.targetResource();
+    this.description = finding.description();
+    this.expectedStatus = finding.expectedStatus();
+    this.actualStatus = finding.actualStatus();
+    this.evidence = finding.evidence();
+    this.detectedAt = finding.detectedAt();
+}
     public Long getId() { return id; }
     public String getFindingId() { return findingId; }
     public String getVulnerabilityType() { return vulnerabilityType; }

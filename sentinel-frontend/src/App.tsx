@@ -1,6 +1,10 @@
 
 import { useState } from 'react'
-import SpecificationsPage from './SpecificationsPage'
+import SpecificationsPage, { type EndpointSummary } from './SpecificationsPage'
+import SecurityGraphPage from './SecurityGraphPage'
+import TestRunsPage from './TestRunsPage'
+import FindingsPage from './FindingsPage'
+
 import {
   Shield,
   LayoutDashboard,
@@ -48,6 +52,7 @@ const findings = [
 
 function App() {
   const [activePage, setActivePage] = useState('Overview')
+  const [endpoints, setEndpoints] = useState<EndpointSummary[]>([])
 
   return (
     <div className="flex min-h-screen bg-[#09090b] text-gray-200">
@@ -56,6 +61,7 @@ function App() {
           <div className="rounded-xl bg-violet-500/15 p-2.5">
             <Shield className="h-6 w-6 text-violet-400" />
           </div>
+
           <div>
             <h1 className="text-lg font-bold tracking-wide text-white">
               API Sentinel
@@ -99,6 +105,7 @@ function App() {
             <div className="rounded-lg bg-emerald-500/10 p-2">
               <Activity className="h-5 w-5 text-emerald-400" />
             </div>
+
             <div>
               <p className="text-xs font-medium text-white">
                 Scanner status
@@ -155,6 +162,7 @@ function App() {
 
         <div className="mx-auto max-w-7xl space-y-8 p-8">
 
+          {/* OVERVIEW PAGE */}
           {activePage === 'Overview' ? (
             <>
               <section className="flex flex-wrap items-center justify-between gap-4">
@@ -345,8 +353,17 @@ function App() {
               </section>
             </>
           ) : activePage === 'Specifications' ? (
-            <SpecificationsPage />
-          ) : (
+            <SpecificationsPage
+              endpoints={endpoints}
+              onEndpointsParsed={setEndpoints}
+            />
+          ) : activePage === 'Security Graph' ? (
+  <SecurityGraphPage endpoints={endpoints} />
+) : activePage === 'Test Runs' ? (
+  <TestRunsPage endpoints={endpoints} />
+) : activePage === 'Findings' ? (
+  <FindingsPage />
+) : (
             <section className="rounded-xl border border-white/10 bg-[#111116] p-8">
               <h3 className="text-xl font-semibold text-white">
                 {activePage}

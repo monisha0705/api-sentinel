@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { Upload, FileCode, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
 import api from './api/client'
 
-interface EndpointSummary {
+export interface EndpointSummary {
   path: string
   method: string
   operationId: string
@@ -13,9 +13,15 @@ interface EndpointSummary {
   requestBodyRequired: boolean
 }
 
-function SpecificationsPage() {
+interface SpecificationsPageProps {
+  endpoints: EndpointSummary[]
+  onEndpointsParsed: (endpoints: EndpointSummary[]) => void
+}
+
+
+
+function SpecificationsPage({ endpoints, onEndpointsParsed }: SpecificationsPageProps) {
   const [file, setFile] = useState<File | null>(null)
-  const [endpoints, setEndpoints] = useState<EndpointSummary[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [uploaded, setUploaded] = useState(false)
@@ -42,7 +48,7 @@ function SpecificationsPage() {
         },
       )
 
-      setEndpoints(response.data)
+      onEndpointsParsed(response.data)
       setUploaded(true)
     } catch (err: any) {
       setError(
