@@ -3,7 +3,8 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Sentinel Bank API",
-    "version": "1.0.0"
+    "version": "1.0.0",
+    "description": "Benchmark API for authorization and business logic security testing"
   },
   "paths": {
     "/api/accounts": {
@@ -45,6 +46,60 @@
             }
           }
         }
+      }
+    },
+    "/api/payments/{id}": {
+      "get": {
+        "summary": "Get payment by ID",
+        "operationId": "getPaymentById",
+        "tags": ["Payments"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ]
+      }
+    },
+    "/api/payments/{id}/approve": {
+      "post": {
+        "summary": "Approve payment",
+        "operationId": "approvePayment",
+        "tags": ["Payments"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ]
+      }
+    },
+    "/api/payments/{id}/cancel": {
+      "post": {
+        "summary": "Cancel payment",
+        "operationId": "cancelPayment",
+        "tags": ["Payments"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ]
       }
     }
   }

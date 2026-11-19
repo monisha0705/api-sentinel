@@ -1,4 +1,5 @@
 
+
 package com.apisentinel.sentinel.testgeneration;
 
 import com.apisentinel.sentinel.graph.*;
@@ -6,8 +7,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -21,31 +20,71 @@ class GraphGuidedTestGeneratorTest {
         generator = new GraphGuidedTestGenerator();
         graph = new SecurityGraph();
 
+        // Identity nodes
         GraphNode alice = node("alice", NodeType.IDENTITY, "Alice");
         GraphNode bob = node("bob", NodeType.IDENTITY, "Bob");
         GraphNode admin = node("admin", NodeType.IDENTITY, "Admin");
 
-        GraphNode customer = node("role-customer", NodeType.ROLE, "CUSTOMER");
-        GraphNode administrator = node("role-admin", NodeType.ROLE, "ADMIN");
+        // Role nodes
+        GraphNode customer = node(
+                "role-customer", NodeType.ROLE, "CUSTOMER"
+        );
 
-        GraphNode account101 = node("account-101", NodeType.RESOURCE, "Alice Account");
-        GraphNode account202 = node("account-202", NodeType.RESOURCE, "Bob Account");
+        GraphNode administrator = node(
+                "role-admin", NodeType.ROLE, "ADMIN"
+        );
 
+        // Account resources
+        GraphNode account101 = node(
+                "account-101", NodeType.RESOURCE, "Alice Account"
+        );
+
+        GraphNode account202 = node(
+                "account-202", NodeType.RESOURCE, "Bob Account"
+        );
+
+        // Account endpoint
         GraphNode accountsEndpoint = node(
                 "GET:/api/accounts/{id}",
                 NodeType.ENDPOINT,
                 "Get account by ID"
         );
 
+        // Payment approval endpoint
+        GraphNode approvalEndpoint = node(
+                "POST:/api/payments/{id}/approve",
+                NodeType.ENDPOINT,
+                "Approve payment"
+        );
+
+        // Identity-role relationships
         addRelationship(alice, customer, RelationshipType.HAS_ROLE);
         addRelationship(bob, customer, RelationshipType.HAS_ROLE);
         addRelationship(admin, administrator, RelationshipType.HAS_ROLE);
 
+        // Ownership relationships
         addRelationship(alice, account101, RelationshipType.OWNS);
         addRelationship(bob, account202, RelationshipType.OWNS);
 
-        addRelationship(accountsEndpoint, account101, RelationshipType.ACCESSES);
-        addRelationship(accountsEndpoint, account202, RelationshipType.ACCESSES);
+        // Account endpoint-resource relationships
+        addRelationship(
+                accountsEndpoint,
+                account101,
+                RelationshipType.ACCESSES
+        );
+
+        addRelationship(
+                accountsEndpoint,
+                account202,
+                RelationshipType.ACCESSES
+        );
+
+        // Approval endpoint requires ADMIN
+        addRelationship(
+                approvalEndpoint,
+                administrator,
+                RelationshipType.REQUIRES_ROLE
+        );
     }
 
     @Test
@@ -53,15 +92,19 @@ class GraphGuidedTestGeneratorTest {
 
         List<SecurityTestCase> tests = generator.generateTests(graph);
 
-        assertEquals(2, tests.size());
+        List<SecurityTestCase> bolaTests = tests.stream()
+                .filter(test -> test.testType().equals("BOLA"))
+                .toList();
 
-        assertTrue(tests.stream().anyMatch(test ->
+        assertEquals(2, bolaTests.size());
+
+        assertTrue(bolaTests.stream().anyMatch(test ->
                 test.identity().equals("alice")
                         && test.endpoint().equals("/api/accounts/202")
                         && test.targetResource().equals("account-202")
         ));
 
-        assertTrue(tests.stream().anyMatch(test ->
+        assertTrue(bolaTests.stream().anyMatch(test ->
                 test.identity().equals("bob")
                         && test.endpoint().equals("/api/accounts/101")
                         && test.targetResource().equals("account-101")
@@ -83,12 +126,14 @@ class GraphGuidedTestGeneratorTest {
         List<SecurityTestCase> tests = generator.generateTests(graph);
 
         assertFalse(tests.stream().anyMatch(test ->
-                test.identity().equals("alice")
+                test.testType().equals("BOLA")
+                        && test.identity().equals("alice")
                         && test.targetResource().equals("account-101")
         ));
 
         assertFalse(tests.stream().anyMatch(test ->
-                test.identity().equals("bob")
+                test.testType().equals("BOLA")
+                        && test.identity().equals("bob")
                         && test.targetResource().equals("account-202")
         ));
     }
@@ -98,10 +143,15 @@ class GraphGuidedTestGeneratorTest {
 
         List<SecurityTestCase> tests = generator.generateTests(graph);
 
-        assertTrue(tests.stream().allMatch(test ->
+        List<SecurityTestCase> bolaTests = tests.stream()
+                .filter(test -> test.testType().equals("BOLA"))
+                .toList();
+
+        assertFalse(bolaTests.isEmpty());
+
+        assertTrue(bolaTests.stream().allMatch(test ->
                 test.method().equals("GET")
                         && test.expectedStatus() == 404
-                        && test.testType().equals("BOLA")
         ));
     }
 
@@ -116,15 +166,62 @@ class GraphGuidedTestGeneratorTest {
         assertTrue(tests.isEmpty());
     }
 
-    private GraphNode node(String id, NodeType type, String name) {
+    @Test
+    void shouldGenerateBflaTestForAliceAgainstAdminEndpoint() {
+
+        List<SecurityTestCase> tests = generator.generateTests(graph);
+
+        assertTrue(tests.stream().anyMatch(test ->
+                test.testType().equals("BFLA")
+                        && test.identity().equals("alice")
+                        && test.method().equals("POST")
+                        && test.endpoint().equals(
+                                "/api/payments/{id}/approve"
+                        )
+                        && test.expectedStatus() == 403
+        ));
+    }
+
+    @Test
+    void shouldGenerateBflaTestForBobAgainstAdminEndpoint() {
+
+        List<SecurityTestCase> tests = generator.generateTests(graph);
+
+        assertTrue(tests.stream().anyMatch(test ->
+                test.testType().equals("BFLA")
+                        && test.identity().equals("bob")
+                        && test.method().equals("POST")
+                        && test.endpoint().equals(
+                                "/api/payments/{id}/approve"
+                        )
+                        && test.expectedStatus() == 403
+        ));
+    }
+
+    @Test
+    void shouldNotGenerateBflaTestForAdmin() {
+
+        List<SecurityTestCase> tests = generator.generateTests(graph);
+
+        assertFalse(tests.stream().anyMatch(test ->
+                test.testType().equals("BFLA")
+                        && test.identity().equals("admin")
+        ));
+    }
+
+    private GraphNode node(
+            String id,
+            NodeType type,
+            String name) {
+
         return new GraphNode(id, type, name, "");
     }
 
     private void addRelationship(
             GraphNode source,
             GraphNode target,
-            RelationshipType relationship
-    ) {
+            RelationshipType relationship) {
+
         graph.addRelationship(
                 source,
                 target,

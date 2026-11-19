@@ -1,3 +1,4 @@
+
 package com.apisentinel.sentinel.testgeneration;
 
 public record SecurityTestCase(
@@ -8,7 +9,35 @@ public record SecurityTestCase(
         String endpoint,
         String targetResource,
         String description,
-        int expectedStatus
+        int expectedStatus,
+        String requestBody,
+        String precondition,
+        String expectedState
 ) {
-}
 
+    // Backward-compatible constructor for existing BOLA tests.
+    public SecurityTestCase(
+            String testId,
+            String testType,
+            String identity,
+            String method,
+            String endpoint,
+            String targetResource,
+            String description,
+            int expectedStatus
+    ) {
+        this(
+                testId,
+                testType,
+                identity,
+                method,
+                endpoint,
+                targetResource,
+                description,
+                expectedStatus,
+                null,
+                null,
+                null
+        );
+    }
+}

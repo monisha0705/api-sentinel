@@ -18,8 +18,11 @@ class HttpTestExecutionServiceTest {
 
     private HttpServer server;
     private HttpTestExecutionService executionService;
+
     private String receivedAuthorization;
     private String receivedPath;
+    private String receivedMethod;
+    private String receivedBody;
 
     @BeforeEach
     void setUp() throws IOException {
@@ -30,7 +33,14 @@ class HttpTestExecutionServiceTest {
         server.createContext("/api/accounts/202", exchange -> {
             receivedAuthorization =
                     exchange.getRequestHeaders().getFirst("Authorization");
+
             receivedPath = exchange.getRequestURI().getPath();
+            receivedMethod = exchange.getRequestMethod();
+
+            receivedBody = new String(
+                    exchange.getRequestBody().readAllBytes(),
+                    StandardCharsets.UTF_8
+            );
 
             byte[] response = "{\"accountId\":202}".getBytes(
                     StandardCharsets.UTF_8
@@ -127,11 +137,24 @@ class HttpTestExecutionServiceTest {
     void shouldRejectUnsupportedIdentity() {
 
         SecurityTestCase testCase = createTestCase(
-                "admin", "/api/accounts/202", 200
+                "unknown-user", "/api/accounts/202", 200
         );
 
         assertThrows(
                 IllegalArgumentException.class,
+                () -> executionService.execute(testCase)
+        );
+    }
+
+    @Test
+    void shouldRejectAdminWhenCredentialsAreMissing() {
+
+        SecurityTestCase testCase = createTestCase(
+                "admin", "/api/accounts/202", 200
+        );
+
+        assertThrows(
+                IllegalStateException.class,
                 () -> executionService.execute(testCase)
         );
     }
@@ -164,6 +187,62 @@ class HttpTestExecutionServiceTest {
                 IllegalStateException.class,
                 () -> executionService.execute(testCase)
         );
+    }
+
+    @Test
+    void shouldExecuteRequestUsingAdminCredentials() {
+
+        ReflectionTestUtils.setField(
+                executionService, "adminPassword", "admin-test-password"
+        );
+
+        SecurityTestCase testCase = createTestCase(
+                "admin", "/api/accounts/202", 200
+        );
+
+        TestExecutionResult result = executionService.execute(testCase);
+
+        String expectedCredentials = Base64.getEncoder().encodeToString(
+                "admin:admin-test-password".getBytes(StandardCharsets.UTF_8)
+        );
+
+        assertEquals("Basic " + expectedCredentials, receivedAuthorization);
+        assertEquals(200, result.actualStatus());
+        assertTrue(result.passed());
+    }
+
+    @Test
+    void shouldSendJsonRequestBodyForPostRequest() {
+
+        String requestBody = """
+                {
+                    "amount": 250.00,
+                    "currency": "INR",
+                    "beneficiaryReference": "TEST-PAYMENT",
+                    "sourceAccountId": 101
+                }
+                """;
+
+        SecurityTestCase testCase = new SecurityTestCase(
+                "HTTP-POST-TEST",
+                "BUSINESS_LOGIC",
+                "alice",
+                "POST",
+                "/api/accounts/202",
+                "account-202",
+                "POST request body test",
+                200,
+                requestBody,
+                null,
+                null
+        );
+
+        TestExecutionResult result = executionService.execute(testCase);
+
+        assertEquals("POST", receivedMethod);
+        assertEquals(requestBody, receivedBody);
+        assertEquals(200, result.actualStatus());
+        assertTrue(result.passed());
     }
 
     private SecurityTestCase createTestCase(

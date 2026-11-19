@@ -1,3 +1,4 @@
+
 package com.apisentinel.sentinel.controller;
 
 import com.apisentinel.sentinel.finding.FindingDetectionService;
@@ -6,6 +7,8 @@ import com.apisentinel.sentinel.finding.SecurityFinding;
 import com.apisentinel.sentinel.finding.SecurityFindingEntity;
 import com.apisentinel.sentinel.testgeneration.SecurityTestCase;
 import com.apisentinel.sentinel.testgeneration.TestExecutionResult;
+import com.apisentinel.sentinel.testgeneration.StatefulPaymentTestExecutionService;
+
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -39,6 +42,18 @@ public class FindingController {
         return findings;
     }
 
+    @PostMapping("/detect/stateful")
+    public List<SecurityFinding> detectStatefulFinding(
+            @RequestBody StatefulPaymentTestExecutionService.StatefulTestExecutionResult result) {
+
+        List<SecurityFinding> findings =
+                detectionService.detectStatefulFinding(result);
+
+        persistenceService.saveFindings(findings);
+
+        return findings;
+    }
+
     @GetMapping
     public List<SecurityFindingEntity> getAllFindings() {
         return persistenceService.getAllFindings();
@@ -49,6 +64,3 @@ public class FindingController {
             List<TestExecutionResult> executionResults) {
     }
 }
-
-
-

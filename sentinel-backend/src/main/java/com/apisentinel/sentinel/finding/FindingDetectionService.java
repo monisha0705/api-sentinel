@@ -1,7 +1,10 @@
+
 package com.apisentinel.sentinel.finding;
 
 import com.apisentinel.sentinel.testgeneration.SecurityTestCase;
 import com.apisentinel.sentinel.testgeneration.TestExecutionResult;
+import com.apisentinel.sentinel.testgeneration.StatefulPaymentTestExecutionService;
+
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -17,9 +20,12 @@ public class FindingDetectionService {
 
         List<SecurityFinding> findings = new ArrayList<>();
 
-        for (int i = 0; i < testCases.size(); i++) {
+        if (testCases == null || executionResults == null) {
+            return findings;
+        }
 
-            SecurityTestCase testCase = testCases.get(i);
+        for (SecurityTestCase testCase : testCases) {
+
             TestExecutionResult result = executionResults.stream()
                     .filter(r -> r.testId().equals(testCase.testId()))
                     .findFirst()
@@ -29,7 +35,8 @@ public class FindingDetectionService {
                 continue;
             }
 
-            if ("BOLA".equals(testCase.testType())
+            // BOLA: Unauthorized access to another user's resource.
+            if ("BOLA".equalsIgnoreCase(testCase.testType())
                     && result.actualStatus() == 200
                     && result.expectedStatus() == 404) {
 
@@ -47,9 +54,77 @@ public class FindingDetectionService {
                         Instant.now()
                 ));
             }
+
+            // BFLA: An identity successfully invokes a restricted function.
+            if ("BFLA".equalsIgnoreCase(testCase.testType())
+                    && result.expectedStatus() == 403
+                    && result.actualStatus() >= 200
+                    && result.actualStatus() < 300) {
+
+                findings.add(new SecurityFinding(
+                        "FINDING-" + testCase.testId(),
+                        "BFLA",
+                        "HIGH",
+                        testCase.identity(),
+                        testCase.endpoint(),
+                        testCase.targetResource(),
+                        "Function-level authorization violation: identity "
+                                + testCase.identity()
+                                + " successfully accessed a function that requires "
+                                + "authorization. Expected HTTP 403 but received HTTP "
+                                + result.actualStatus() + ".",
+                        result.expectedStatus(),
+                        result.actualStatus(),
+                        result.responseBody(),
+                        Instant.now()
+                ));
+            }
         }
 
         return findings;
+    }
+
+    public List<SecurityFinding> detectStatefulFinding(
+            StatefulPaymentTestExecutionService.StatefulTestExecutionResult result) {
+
+        if (result == null || result.invariantPreserved()) {
+            return List.of();
+        }
+
+        TestExecutionResult approvalStep = result.steps().stream()
+                .filter(step -> "BL-001-APPROVE".equals(step.testId()))
+                .findFirst()
+                .orElse(null);
+
+        if (approvalStep == null) {
+            return List.of();
+        }
+
+        String evidence = result.steps().stream()
+                .map(step -> step.testId()
+                        + " | Expected HTTP: " + step.expectedStatus()
+                        + " | Actual HTTP: " + step.actualStatus()
+                        + " | Response: " + step.responseBody())
+                .reduce((first, second) -> first + "\n\n" + second)
+                .orElse("");
+
+        SecurityFinding finding = new SecurityFinding(
+                "FINDING-" + result.scenarioId(),
+                "BUSINESS_LOGIC",
+                "HIGH",
+                approvalStep.identity(),
+                approvalStep.endpoint(),
+                result.resourceId(),
+                "Unauthorized payment approval changed payment state from "
+                        + result.initialState() + " to " + result.finalState()
+                        + " instead of preserving " + result.expectedFinalState(),
+                approvalStep.expectedStatus(),
+                approvalStep.actualStatus(),
+                evidence,
+                Instant.now()
+        );
+
+        return List.of(finding);
     }
 }
 

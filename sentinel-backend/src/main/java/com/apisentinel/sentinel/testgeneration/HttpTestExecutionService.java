@@ -1,3 +1,4 @@
+
 package com.apisentinel.sentinel.testgeneration;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -25,6 +26,9 @@ public class HttpTestExecutionService {
     @Value("${sentinel.credentials.bob:}")
     private String bobPassword;
 
+    @Value("${sentinel.credentials.admin:}")
+    private String adminPassword;
+
     public HttpTestExecutionService() {
         this.httpClient = HttpClient.newHttpClient();
     }
@@ -34,6 +38,7 @@ public class HttpTestExecutionService {
         String password = switch (testCase.identity().toLowerCase()) {
             case "alice" -> alicePassword;
             case "bob" -> bobPassword;
+            case "admin" -> adminPassword;
             default -> throw new IllegalArgumentException(
                     "Unsupported benchmark identity: " + testCase.identity()
             );
@@ -55,19 +60,39 @@ public class HttpTestExecutionService {
 
             String endpoint = testCase.endpoint();
 
-            if (!endpoint.startsWith("/")) {
-                throw new IllegalArgumentException("Endpoint must start with /");
+            if (endpoint == null || !endpoint.startsWith("/")
+                    || endpoint.startsWith("//")) {
+                throw new IllegalArgumentException(
+                        "Endpoint must be an absolute path starting with /"
+                );
             }
 
             URI uri = URI.create(
                     targetBaseUrl.replaceAll("/+$", "") + endpoint
             );
 
-            HttpRequest request = HttpRequest.newBuilder()
+            HttpRequest.BodyPublisher bodyPublisher;
+
+            if (testCase.requestBody() == null) {
+                bodyPublisher = HttpRequest.BodyPublishers.noBody();
+            } else {
+                bodyPublisher = HttpRequest.BodyPublishers.ofString(
+                        testCase.requestBody(),
+                        StandardCharsets.UTF_8
+                );
+            }
+
+            HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
                     .uri(uri)
                     .header("Authorization", authorization)
-                    .header("Accept", "application/json")
-                    .method(testCase.method(), HttpRequest.BodyPublishers.noBody())
+                    .header("Accept", "application/json");
+
+            if (testCase.requestBody() != null) {
+                requestBuilder.header("Content-Type", "application/json");
+            }
+
+            HttpRequest request = requestBuilder
+                    .method(testCase.method(), bodyPublisher)
                     .build();
 
             HttpResponse<String> response = httpClient.send(
@@ -101,4 +126,3 @@ public class HttpTestExecutionService {
         }
     }
 }
-

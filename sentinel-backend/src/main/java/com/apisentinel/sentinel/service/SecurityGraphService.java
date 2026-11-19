@@ -1,3 +1,4 @@
+
 package com.apisentinel.sentinel.service;
 
 import com.apisentinel.sentinel.dto.EndpointSummary;
@@ -62,62 +63,142 @@ public class SecurityGraphService {
                 "Payment resources"
         );
 
-        // Add identity-role relationships
+        // Payment workflow state nodes
+        GraphNode pendingState = node(
+                "payment-state-pending",
+                NodeType.WORKFLOW_STATE,
+                "PENDING",
+                "Payment created and awaiting approval or cancellation"
+        );
+
+        GraphNode approvedState = node(
+                "payment-state-approved",
+                NodeType.WORKFLOW_STATE,
+                "APPROVED",
+                "Payment approved by an administrator"
+        );
+
+        GraphNode cancelledState = node(
+                "payment-state-cancelled",
+                NodeType.WORKFLOW_STATE,
+                "CANCELLED",
+                "Payment cancelled by its creator"
+        );
+
+        // Valid payment workflow transitions
+        connect(
+                graph,
+                pendingState,
+                approvedState,
+                RelationshipType.TRANSITIONS_TO
+        );
+
+        connect(
+                graph,
+                pendingState,
+                cancelledState,
+                RelationshipType.TRANSITIONS_TO
+        );
+
+        // Identity-role relationships
         connect(graph, alice, customerRole, RelationshipType.HAS_ROLE);
         connect(graph, bob, customerRole, RelationshipType.HAS_ROLE);
         connect(graph, admin, adminRole, RelationshipType.HAS_ROLE);
 
-        // Add ownership relationships
+        // Resource ownership relationships
         connect(graph, alice, aliceAccount, RelationshipType.OWNS);
         connect(graph, bob, bobAccount, RelationshipType.OWNS);
 
-        // Add API endpoint nodes
+        // API endpoint nodes and relationships
         if (endpoints != null) {
+
             for (EndpointSummary endpoint : endpoints) {
 
-                String endpointId = endpoint.method().toUpperCase()
-                        + ":" + endpoint.path();
+                String method = endpoint.method().toUpperCase();
+                String path = endpoint.path().toLowerCase();
+
+                String endpointId = method + ":" + endpoint.path();
 
                 GraphNode endpointNode = node(
                         endpointId,
                         NodeType.ENDPOINT,
-                        endpoint.method() + " " + endpoint.path(),
+                        method + " " + endpoint.path(),
                         endpoint.summary()
                 );
 
                 graph.addNode(endpointNode);
 
-                // Associate endpoint with its resource category.
-                String path = endpoint.path().toLowerCase();
-
+                // Account endpoint relationships
                 if (path.contains("account")) {
-                    graph.addRelationship(
+
+                    connect(
+                            graph,
                             endpointNode,
                             aliceAccount,
-                            new GraphEdge(
-                                    RelationshipType.ACCESSES,
-                                    "Endpoint references account resources"
-                            )
+                            RelationshipType.ACCESSES
                     );
-                    graph.addRelationship(
+
+                    connect(
+                            graph,
                             endpointNode,
                             bobAccount,
-                            new GraphEdge(
-                                    RelationshipType.ACCESSES,
-                                    "Endpoint references account resources"
-                            )
+                            RelationshipType.ACCESSES
                     );
                 }
 
+                // Payment endpoint relationships
                 if (path.contains("payment")) {
-                    graph.addRelationship(
+
+                    connect(
+                            graph,
                             endpointNode,
                             payments,
-                            new GraphEdge(
-                                    RelationshipType.ACCESSES,
-                                    "Endpoint references payment resources"
-                            )
+                            RelationshipType.ACCESSES
                     );
+
+                    // Payment creation modifies payment resources.
+                    if (method.equals("POST")
+                            && !path.endsWith("/approve")
+                            && !path.endsWith("/cancel")) {
+
+                        connect(
+                                graph,
+                                endpointNode,
+                                payments,
+                                RelationshipType.CREATES
+                        );
+                    }
+
+                    // Approval requires the ADMIN role.
+                    if (method.equals("POST")
+                            && path.endsWith("/approve")) {
+
+                        connect(
+                                graph,
+                                endpointNode,
+                                adminRole,
+                                RelationshipType.REQUIRES_ROLE
+                        );
+
+                        connect(
+                                graph,
+                                endpointNode,
+                                payments,
+                                RelationshipType.APPROVES
+                        );
+                    }
+
+                    // Cancellation modifies payment resources.
+                    if (method.equals("POST")
+                            && path.endsWith("/cancel")) {
+
+                        connect(
+                                graph,
+                                endpointNode,
+                                payments,
+                                RelationshipType.MODIFIES
+                        );
+                    }
                 }
             }
         }

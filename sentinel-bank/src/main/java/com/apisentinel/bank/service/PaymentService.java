@@ -12,6 +12,7 @@ import com.apisentinel.bank.repository.BankUserRepository;
 import com.apisentinel.bank.repository.PaymentEventRepository;
 import com.apisentinel.bank.repository.PaymentRepository;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -28,6 +29,9 @@ public class PaymentService {
     private final AccountRepository accountRepository;
     private final BankUserRepository bankUserRepository;
     private final PaymentEventRepository paymentEventRepository;
+
+    @Value("${sentinel.bank.authorization-mode:SECURE}")
+    private String authorizationMode;
 
     public PaymentService(
             PaymentRepository paymentRepository,
@@ -109,7 +113,12 @@ public class PaymentService {
 
         BankUser user = getAuthenticatedUser(authentication);
 
-        if (!"ADMIN".equals(user.getRole())) {
+        // SECURE mode enforces administrator-only approval.
+        // VULNERABLE mode intentionally disables this check
+        // for controlled security testing.
+        if (!"VULNERABLE".equalsIgnoreCase(authorizationMode)
+                && !"ADMIN".equals(user.getRole())) {
+
             throw new ResponseStatusException(
                     HttpStatus.FORBIDDEN,
                     "Only administrators can approve payments");

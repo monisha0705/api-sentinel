@@ -1,8 +1,8 @@
-
 package com.apisentinel.sentinel.graph;
 
 public enum RelationshipType {
     HAS_ROLE,
+    REQUIRES_ROLE,
     OWNS,
     ACCESSES,
     MODIFIES,

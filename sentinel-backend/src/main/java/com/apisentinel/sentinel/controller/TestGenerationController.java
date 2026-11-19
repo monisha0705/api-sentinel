@@ -1,3 +1,4 @@
+
 package com.apisentinel.sentinel.controller;
 
 import com.apisentinel.sentinel.dto.EndpointSummary;
@@ -6,6 +7,7 @@ import com.apisentinel.sentinel.service.SecurityGraphService;
 import com.apisentinel.sentinel.testgeneration.GraphGuidedTestGenerator;
 import com.apisentinel.sentinel.testgeneration.HttpTestExecutionService;
 import com.apisentinel.sentinel.testgeneration.SecurityTestCase;
+import com.apisentinel.sentinel.testgeneration.StatefulPaymentTestExecutionService;
 import com.apisentinel.sentinel.testgeneration.TestExecutionResult;
 
 import org.springframework.web.bind.annotation.*;
@@ -19,14 +21,17 @@ public class TestGenerationController {
     private final SecurityGraphService graphService;
     private final GraphGuidedTestGenerator testGenerator;
     private final HttpTestExecutionService executionService;
+    private final StatefulPaymentTestExecutionService statefulExecutionService;
 
     public TestGenerationController(
             SecurityGraphService graphService,
             GraphGuidedTestGenerator testGenerator,
-            HttpTestExecutionService executionService) {
+            HttpTestExecutionService executionService,
+            StatefulPaymentTestExecutionService statefulExecutionService) {
         this.graphService = graphService;
         this.testGenerator = testGenerator;
         this.executionService = executionService;
+        this.statefulExecutionService = statefulExecutionService;
     }
 
     @PostMapping("/generate")
@@ -46,6 +51,12 @@ public class TestGenerationController {
                 .map(executionService::execute)
                 .toList();
     }
+
+    @PostMapping("/execute/stateful")
+    public StatefulPaymentTestExecutionService.StatefulTestExecutionResult
+    executeStatefulScenario() {
+
+        return statefulExecutionService
+                .executeUnauthorizedApprovalScenario();
+    }
 }
-
-
