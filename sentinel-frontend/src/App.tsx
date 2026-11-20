@@ -1,9 +1,10 @@
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import SpecificationsPage, { type EndpointSummary } from './SpecificationsPage'
 import SecurityGraphPage from './SecurityGraphPage'
 import TestRunsPage from './TestRunsPage'
 import FindingsPage from './FindingsPage'
+import api from './api/client'
 
 import {
   Shield,
@@ -31,28 +32,25 @@ const navigation = [
   { name: 'Findings', icon: Bug },
 ]
 
-const findings = [
-  {
-    id: 'F-001',
-    type: 'Broken Object Level Authorization',
-    identity: 'Alice',
-    endpoint: 'GET /api/accounts/202',
-    severity: 'HIGH',
-    status: 'Confirmed',
-  },
-  {
-    id: 'F-002',
-    type: 'Broken Object Level Authorization',
-    identity: 'Bob',
-    endpoint: 'GET /api/accounts/101',
-    severity: 'HIGH',
-    status: 'Confirmed',
-  },
-]
+interface SecurityFinding {
+  id: number
+  findingId: string
+  vulnerabilityType: string
+  severity: string
+  identity: string
+  endpoint: string
+  detectedAt: string
+}
 
 function App() {
   const [activePage, setActivePage] = useState('Overview')
+  const [findings, setFindings] = useState<SecurityFinding[]>([])
   const [endpoints, setEndpoints] = useState<EndpointSummary[]>([])
+  useEffect(() => {
+    api.get<SecurityFinding[]>('/findings')
+      .then((response) => setFindings(response.data))
+      .catch((error) => console.error('Failed to load overview findings:', error))
+  }, [])
 
   return (
     <div className="flex min-h-screen bg-[#09090b] text-gray-200">
@@ -211,8 +209,8 @@ function App() {
                   },
                   {
                     label: 'Vulnerabilities',
-                    value: '2',
-                    note: 'Confirmed findings',
+                    value: findings.length.toString(),
+                    note: 'Persisted findings',
                     icon: AlertTriangle,
                     color: 'text-red-400',
                     bg: 'bg-red-400/10',
@@ -277,14 +275,14 @@ function App() {
                       </thead>
 
                       <tbody>
-                        {findings.map((finding) => (
+                        {findings.slice(0, 5).map((finding) => (
                           <tr
                             key={finding.id}
                             className="border-b border-white/5 last:border-0"
                           >
                             <td className="py-4">
                               <p className="font-medium text-gray-200">
-                                {finding.type}
+                                {finding.vulnerabilityType}
                               </p>
                               <p className="mt-1 text-xs text-gray-500">
                                 {finding.endpoint}
@@ -302,7 +300,7 @@ function App() {
                             </td>
 
                             <td className="py-4 text-xs text-emerald-400">
-                              {finding.status}
+                              Confirmed
                             </td>
                           </tr>
                         ))}
