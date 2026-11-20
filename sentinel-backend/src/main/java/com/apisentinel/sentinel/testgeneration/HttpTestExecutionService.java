@@ -1,6 +1,7 @@
-
 package com.apisentinel.sentinel.testgeneration;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -11,11 +12,13 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.UUID;
 
 @Service
 public class HttpTestExecutionService {
 
     private final HttpClient httpClient;
+    private final ObjectMapper objectMapper;
 
     @Value("${sentinel.target.base-url:http://localhost:8081}")
     private String targetBaseUrl;
@@ -31,33 +34,21 @@ public class HttpTestExecutionService {
 
     public HttpTestExecutionService() {
         this.httpClient = HttpClient.newHttpClient();
+        this.objectMapper = new ObjectMapper();
     }
 
     public TestExecutionResult execute(SecurityTestCase testCase) {
 
-        String password = switch (testCase.identity().toLowerCase()) {
-            case "alice" -> alicePassword;
-            case "bob" -> bobPassword;
-            case "admin" -> adminPassword;
-            default -> throw new IllegalArgumentException(
-                    "Unsupported benchmark identity: " + testCase.identity()
-            );
-        };
+        String identity = testCase.identity();
+        String password = getPassword(identity);
 
         if (password == null || password.isBlank()) {
             throw new IllegalStateException(
-                    "Credentials are not configured for " + testCase.identity()
+                    "Credentials are not configured for " + identity
             );
         }
 
         try {
-            String credentials = testCase.identity() + ":" + password;
-
-            String authorization = "Basic " +
-                    Base64.getEncoder().encodeToString(
-                            credentials.getBytes(StandardCharsets.UTF_8)
-                    );
-
             String endpoint = testCase.endpoint();
 
             if (endpoint == null || !endpoint.startsWith("/")
@@ -67,37 +58,31 @@ public class HttpTestExecutionService {
                 );
             }
 
-            URI uri = URI.create(
-                    targetBaseUrl.replaceAll("/+$", "") + endpoint
-            );
+            if (endpoint.equals("/api/payments/{id}/approve")) {
 
-            HttpRequest.BodyPublisher bodyPublisher;
+                // Admin cannot create a payment because admin does not
+                // own a customer account. Alice creates the fixture.
+                String fixtureIdentity =
+                        identity.equalsIgnoreCase("admin")
+                                ? "alice"
+                                : identity;
 
-            if (testCase.requestBody() == null) {
-                bodyPublisher = HttpRequest.BodyPublishers.noBody();
-            } else {
-                bodyPublisher = HttpRequest.BodyPublishers.ofString(
-                        testCase.requestBody(),
-                        StandardCharsets.UTF_8
+                String fixturePassword = getPassword(fixtureIdentity);
+
+                UUID paymentId = createPaymentAndResolveId(
+                        fixtureIdentity,
+                        fixturePassword
                 );
+
+                endpoint = "/api/payments/" + paymentId + "/approve";
             }
 
-            HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
-                    .uri(uri)
-                    .header("Authorization", authorization)
-                    .header("Accept", "application/json");
-
-            if (testCase.requestBody() != null) {
-                requestBuilder.header("Content-Type", "application/json");
-            }
-
-            HttpRequest request = requestBuilder
-                    .method(testCase.method(), bodyPublisher)
-                    .build();
-
-            HttpResponse<String> response = httpClient.send(
-                    request,
-                    HttpResponse.BodyHandlers.ofString()
+            HttpResponse<String> response = sendRequest(
+                    identity,
+                    testCase.method(),
+                    endpoint,
+                    password,
+                    testCase.requestBody()
             );
 
             boolean passed =
@@ -105,7 +90,7 @@ public class HttpTestExecutionService {
 
             return new TestExecutionResult(
                     testCase.testId(),
-                    testCase.identity(),
+                    identity,
                     endpoint,
                     testCase.expectedStatus(),
                     response.statusCode(),
@@ -116,13 +101,124 @@ public class HttpTestExecutionService {
 
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
+
             throw new IllegalStateException(
                     "HTTP test execution was interrupted", exception
             );
+
         } catch (Exception exception) {
             throw new IllegalStateException(
-                    "Failed to execute test " + testCase.testId(), exception
+                    "Failed to execute test " + testCase.testId(),
+                    exception
             );
         }
+    }
+
+    private String getPassword(String identity) {
+        return switch (identity.toLowerCase()) {
+            case "alice" -> alicePassword;
+            case "bob" -> bobPassword;
+            case "admin" -> adminPassword;
+            default -> throw new IllegalArgumentException(
+                    "Unsupported benchmark identity: " + identity
+            );
+        };
+    }
+
+    private UUID createPaymentAndResolveId(
+            String identity,
+            String password
+    ) throws Exception {
+
+        int accountId = switch (identity.toLowerCase()) {
+            case "alice" -> 101;
+            case "bob" -> 202;
+            default -> throw new IllegalArgumentException(
+                    "Payment fixture identity must be Alice or Bob"
+            );
+        };
+
+        String body = """
+                {
+                    "amount": 250.00,
+                    "currency": "INR",
+                    "beneficiaryReference": "API-SENTINEL-BFLA-%s",
+                    "sourceAccountId": %d
+                }
+                """.formatted(identity.toUpperCase(), accountId);
+
+        HttpResponse<String> response = sendRequest(
+                identity,
+                "POST",
+                "/api/payments",
+                password,
+                body
+        );
+
+        if (response.statusCode() != 201) {
+            throw new IllegalStateException(
+                    "Could not create BFLA payment fixture. HTTP "
+                            + response.statusCode()
+                            + ". Response: " + response.body()
+            );
+        }
+
+        JsonNode json = objectMapper.readTree(response.body());
+        String paymentId = json.path("id").asText();
+
+        try {
+            return UUID.fromString(paymentId);
+        } catch (IllegalArgumentException exception) {
+            throw new IllegalStateException(
+                    "Payment creation response contained an invalid UUID: "
+                            + paymentId,
+                    exception
+            );
+        }
+    }
+
+    private HttpResponse<String> sendRequest(
+            String identity,
+            String method,
+            String endpoint,
+            String password,
+            String requestBody
+    ) throws Exception {
+
+        String credentials = identity + ":" + password;
+
+        String authorization = "Basic " +
+                Base64.getEncoder().encodeToString(
+                        credentials.getBytes(StandardCharsets.UTF_8)
+                );
+
+        URI uri = URI.create(
+                targetBaseUrl.replaceAll("/+$", "") + endpoint
+        );
+
+        HttpRequest.BodyPublisher bodyPublisher =
+                requestBody == null
+                        ? HttpRequest.BodyPublishers.noBody()
+                        : HttpRequest.BodyPublishers.ofString(
+                                requestBody, StandardCharsets.UTF_8
+                        );
+
+        HttpRequest.Builder builder = HttpRequest.newBuilder()
+                .uri(uri)
+                .header("Authorization", authorization)
+                .header("Accept", "application/json");
+
+        if (requestBody != null) {
+            builder.header("Content-Type", "application/json");
+        }
+
+        HttpRequest request = builder
+                .method(method, bodyPublisher)
+                .build();
+
+        return httpClient.send(
+                request,
+                HttpResponse.BodyHandlers.ofString()
+        );
     }
 }
