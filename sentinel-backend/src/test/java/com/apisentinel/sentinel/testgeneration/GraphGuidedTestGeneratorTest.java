@@ -35,12 +35,12 @@ class GraphGuidedTestGeneratorTest {
         );
 
         // Account resources
-        GraphNode account101 = node(
-                "account-101", NodeType.RESOURCE, "Alice Account"
+        GraphNode account203 = node(
+                "account-203", NodeType.RESOURCE, "Alice Account"
         );
 
-        GraphNode account202 = node(
-                "account-202", NodeType.RESOURCE, "Bob Account"
+        GraphNode account204 = node(
+                "account-204", NodeType.RESOURCE, "Bob Account"
         );
 
         // Account endpoint
@@ -63,19 +63,19 @@ class GraphGuidedTestGeneratorTest {
         addRelationship(admin, administrator, RelationshipType.HAS_ROLE);
 
         // Ownership relationships
-        addRelationship(alice, account101, RelationshipType.OWNS);
-        addRelationship(bob, account202, RelationshipType.OWNS);
+        addRelationship(alice, account203, RelationshipType.OWNS);
+        addRelationship(bob, account204, RelationshipType.OWNS);
 
         // Account endpoint-resource relationships
         addRelationship(
                 accountsEndpoint,
-                account101,
+                account203,
                 RelationshipType.ACCESSES
         );
 
         addRelationship(
                 accountsEndpoint,
-                account202,
+                account204,
                 RelationshipType.ACCESSES
         );
 
@@ -100,14 +100,14 @@ class GraphGuidedTestGeneratorTest {
 
         assertTrue(bolaTests.stream().anyMatch(test ->
                 test.identity().equals("alice")
-                        && test.endpoint().equals("/api/accounts/202")
-                        && test.targetResource().equals("account-202")
+                        && test.endpoint().equals("/api/accounts/204")
+                        && test.targetResource().equals("account-204")
         ));
 
         assertTrue(bolaTests.stream().anyMatch(test ->
                 test.identity().equals("bob")
-                        && test.endpoint().equals("/api/accounts/101")
-                        && test.targetResource().equals("account-101")
+                        && test.endpoint().equals("/api/accounts/203")
+                        && test.targetResource().equals("account-203")
         ));
     }
 
@@ -128,13 +128,13 @@ class GraphGuidedTestGeneratorTest {
         assertFalse(tests.stream().anyMatch(test ->
                 test.testType().equals("BOLA")
                         && test.identity().equals("alice")
-                        && test.targetResource().equals("account-101")
+                        && test.targetResource().equals("account-203")
         ));
 
         assertFalse(tests.stream().anyMatch(test ->
                 test.testType().equals("BOLA")
                         && test.identity().equals("bob")
-                        && test.targetResource().equals("account-202")
+                        && test.targetResource().equals("account-204")
         ));
     }
 
