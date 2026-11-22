@@ -55,5 +55,15 @@ class SecurityGraphServiceTest {
         assertTrue(graph.getRelationships().stream().anyMatch(edge ->
                 edge.relationship() == RelationshipType.OWNS
         ));
+
+        assertTrue(graph.getNodes().stream().anyMatch(node ->
+                node.id().equals("account-203")
+                        && node.description().contains("sentinel_alice")
+        ));
+
+        assertTrue(graph.getNodes().stream().anyMatch(node ->
+                node.id().equals("account-204")
+                        && node.description().contains("sentinel_bob")
+        ));
     }
 }
