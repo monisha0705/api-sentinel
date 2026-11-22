@@ -270,9 +270,10 @@ flowchart TD
 | Database migrations | Flyway |
 | Target API security | Spring Security |
 | Frontend | React 19, TypeScript |
-| Frontend routing | React Router |
 | Frontend tooling | Vite |
+| Graph visualization | `@xyflow/react` |
 | Styling | Tailwind CSS |
+| Icons | Lucide React |
 | HTTP client | Axios |
 | Backend testing | JUnit 5, Spring Boot Test |
 | Build tools | Maven, npm |
