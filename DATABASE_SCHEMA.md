@@ -6,7 +6,7 @@ This document defines the relational database design for API Sentinel and its in
 
 It describes the tables, columns, relationships, constraints, indexes, and data protection rules required by the system.
 
-**Important:** This document is a design specification. The tables are not created in PostgreSQL yet. Actual database structures will be introduced through version-controlled Flyway migrations.
+**Implementation note:** This document contains both the implemented database schema verified from the current Flyway migrations and a broader proposed design for future platform capabilities. Sections describing users/projects, targets, policies, graph snapshots, scans, reports, and research tables are proposals unless explicitly listed as implemented in Section 12. The migration files are the source of truth for the schema currently created by the applications.
 
 ## 2. PostgreSQL Environment
 
@@ -1007,35 +1007,23 @@ Indexes will be added through Flyway migrations after query patterns are reviewe
 
 ## 10. Database Migrations
 
-Flyway will manage schema creation and evolution.
+Flyway manages schema creation and evolution. Each application has its own migration directory and database connection.
 
-Each application will have its own migration directory and independent migration history.
+### Implemented migration files
 
-Planned API Sentinel migration sequence:
+| Application database | Migration | Implemented purpose |
+|---|---|---|
+| `api_sentinel_db` | `V1__create_security_findings.sql` | Creates `security_findings` and indexes for severity, vulnerability type, and detection time |
+| `sentinel_bank_db` | `V1__create_bank_users_and_accounts.sql` | Creates `bank_users` and `accounts`, including role/status/balance/currency constraints and an account-owner index |
+| `sentinel_bank_db` | `V2__create_payments_and_payment_events.sql` | Creates `payments` and `payment_events`, with foreign keys, amount/status/currency checks, and lookup indexes |
+| `sentinel_bank_db` | `V3__seed_benchmark_data.sql` | Seeds the original synthetic Alice, Bob, and Admin users and their accounts |
+| `sentinel_bank_db` | `V4__create_isolated_benchmark_users.sql` | Adds dedicated `sentinel_alice`, `sentinel_bob`, and `sentinel_admin` benchmark identities and customer accounts |
 
-| Migration | Purpose |
-|---|---|
-| V1 | Platform users, projects, and project members |
-| V2 | Targets and API specifications |
-| V3 | API endpoints |
-| V4 | Test identities, credentials, roles, and permissions |
-| V5 | Resources, ownership, policies, and invariants |
-| V6 | Workflows, states, and transitions |
-| V7 | Graph snapshots, nodes, and edges |
-| V8 | Scans and test cases |
-| V9 | Executions and request evidence |
-| V10 | Findings, finding evidence, and reports |
-| V11 | Research experiments and measurements |
+The scanner and benchmark service use separate databases. API Sentinel communicates with Sentinel Bank through its HTTP API and must not connect directly to the benchmark database.
 
-Planned Sentinel Bank migration sequence:
+### Proposed future migration sequence
 
-| Migration | Purpose |
-|---|---|
-| V1 | Bank users and accounts |
-| V2 | Payments and payment events |
-| V3 | Synthetic benchmark seed data |
-
-Migrations will be applied to the correct database using the corresponding application's database connection.
+The broader platform schema described in this document—projects, targets, persisted specifications/endpoints, test identities and roles, resources, policies, workflows, graph snapshots, scans, reports, and research measurements—remains proposed unless a corresponding migration is added. Future migrations must continue from the existing version history in the relevant application; do not reuse or rewrite applied migration versions.
 
 Existing migration files must not be silently edited after they have been applied. New schema changes should use new migration versions.
 
@@ -1053,21 +1041,26 @@ Existing migration files must not be silently edited after they have been applie
 
 ## 12. Implementation Status
 
-**Database environment:** PostgreSQL 17 installed and running.
+**Database platform:** PostgreSQL 17 is the configured database platform. The repository configures the scanner and benchmark service to use separate databases.
 
-**Databases:** `api_sentinel_db` and `sentinel_bank_db` created.
+**Database/role configuration:** `api_sentinel_db` / `sentinel_app` and `sentinel_bank_db` / `bank_app` are the configured database and application-role pairs. Local creation and connection testing are environment setup steps, not schema migrations.
 
-**Application roles:** `sentinel_app` and `bank_app` created and connection-tested.
+**Implemented Flyway schema — API Sentinel:** `V1__create_security_findings.sql` creates:
+- `security_findings`: BIGSERIAL primary key; unique `finding_id`; vulnerability type, severity, identity, endpoint, target resource, description, expected/actual status, evidence, and detection timestamp.
+- Indexes on `severity`, `vulnerability_type`, and `detected_at`.
 
-**Schema design:** Documented here; pending review.
+**Implemented Flyway schema — Sentinel Bank:**
+- `bank_users`: identity primary key, unique username, password hash, role, active flag, and creation timestamp. Role is constrained to `CUSTOMER` or `ADMIN`.
+- `accounts`: identity primary key, unique account number, owner foreign key to `bank_users`, balance, currency, status, and creation timestamp. Includes balance, currency, and status checks plus an owner index.
+- `payments`: UUID primary key, source-account and creator/approver foreign keys, amount, currency, beneficiary reference, status, and timestamps. Includes positive-amount, currency, and status checks plus lookup indexes.
+- `payment_events`: identity primary key, payment and optional actor foreign keys, event type, from/to status, JSONB details, and creation timestamp. Includes status checks and lookup indexes.
+- V3 seeds the original synthetic Alice, Bob, and Admin users and accounts. V4 adds the isolated `sentinel_alice`, `sentinel_bob`, and `sentinel_admin` benchmark identities and their customer accounts.
 
-**Tables and constraints:** Not implemented yet.
+**Broader schema design:** The additional tables and relationships in Sections 5 and 14 (including projects, targets, persisted API specifications/endpoints, test identities/roles, resources, policies, workflows, graph snapshots, scans, reports, and research measurements) are proposed design, not represented by the checked-in migrations listed above.
 
-**Flyway migrations:** Not implemented yet.
+**Persistence integration:** The backend has a persisted findings path corresponding to `security_findings`. Sentinel Bank persists users, accounts, payments, and payment events through its own schema. Do not infer that every proposed table or relationship has been implemented.
 
-**Spring Boot database integration:** Not implemented yet.
-
-A schema feature must not be marked implemented until its migration has been applied and its behavior has been tested.
+A schema feature must not be marked implemented until its migration exists and its behavior has been tested against the intended database.
 
 ## 13. Cross-Project Referential Integrity Overview
 
