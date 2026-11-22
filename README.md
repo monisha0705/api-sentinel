@@ -407,7 +407,7 @@ The following values are placeholders.
 
 Default backend port: `8080`.
 
-Default target base URL: `http://localhost:8081`.
+Default target base URL: `http://127.0.0.1:8081`.
 
 Both Spring Boot services bind to `127.0.0.1` by default for local development. The scanner limits OpenAPI uploads to 5 MB and applies HTTP connection/request timeouts. Do not expose either service publicly without adding suitable authentication, authorization, and deployment controls.
 
@@ -451,7 +451,7 @@ mvn -f .\sentinel-bank\pom.xml spring-boot:run
 Sentinel Bank:
 
 ```text
-http://localhost:8081
+http://127.0.0.1:8081
 ```
 
 ### 2. Start API Sentinel Backend
@@ -463,13 +463,13 @@ mvn -f .\sentinel-backend\pom.xml spring-boot:run
 Backend:
 
 ```text
-http://localhost:8080
+http://127.0.0.1:8080
 ```
 
 Health endpoint:
 
 ```http
-GET http://localhost:8080/actuator/health
+GET http://127.0.0.1:8080/actuator/health
 ```
 
 ### 3. Start the Frontend
@@ -490,7 +490,7 @@ Frontend:
 http://localhost:5173
 ```
 
-The Vite development proxy forwards `/api` and `/actuator` requests to the backend at `http://localhost:8080`.
+The Vite development proxy forwards `/api` and `/actuator` requests to the backend at `http://127.0.0.1:8080`.
 
 ### Local development ports
 
