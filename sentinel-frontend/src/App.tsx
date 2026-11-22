@@ -13,10 +13,6 @@ import {
   Network,
   Play,
   Bug,
-  Settings,
-  Search,
-  Bell,
-  ChevronDown,
   Activity,
   Globe,
   CheckCircle2,
@@ -46,10 +42,20 @@ function App() {
   const [activePage, setActivePage] = useState('Overview')
   const [findings, setFindings] = useState<SecurityFinding[]>([])
   const [endpoints, setEndpoints] = useState<EndpointSummary[]>([])
+  const [backendStatus, setBackendStatus] = useState<'checking' | 'connected' | 'unavailable'>('checking')
+
   useEffect(() => {
     api.get<SecurityFinding[]>('/findings')
       .then((response) => setFindings(response.data))
       .catch((error) => console.error('Failed to load overview findings:', error))
+
+    fetch('/actuator/health')
+      .then((response) => {
+        if (!response.ok) throw new Error('Backend health check failed')
+        return response.json()
+      })
+      .then(() => setBackendStatus('connected'))
+      .catch(() => setBackendStatus('unavailable'))
   }, [])
 
   return (
@@ -108,16 +114,12 @@ function App() {
               <p className="text-xs font-medium text-white">
                 Scanner status
               </p>
-              <p className="mt-1 text-xs text-emerald-400">
-                Backend connected
+              <p className={`mt-1 text-xs ${backendStatus === 'connected' ? 'text-emerald-400' : backendStatus === 'unavailable' ? 'text-red-400' : 'text-amber-400'}`}>
+                {backendStatus === 'connected' ? 'Backend connected' : backendStatus === 'unavailable' ? 'Backend unavailable' : 'Checking backend...'}
               </p>
             </div>
           </div>
 
-          <button className="mt-4 flex items-center gap-3 px-3 text-sm text-gray-500 hover:text-white">
-            <Settings size={17} />
-            Settings
-          </button>
         </div>
       </aside>
 
@@ -132,29 +134,9 @@ function App() {
             </h2>
           </div>
 
-          <div className="flex items-center gap-5">
-            <div className="hidden items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 md:flex">
-              <Globe size={15} className="text-gray-500" />
-              <span className="text-xs text-gray-400">
-                localhost:8081
-              </span>
-              <span className="h-2 w-2 rounded-full bg-emerald-400" />
-            </div>
-
-            <button className="text-gray-400 hover:text-white">
-              <Search size={19} />
-            </button>
-
-            <button className="text-gray-400 hover:text-white">
-              <Bell size={19} />
-            </button>
-
-            <div className="flex items-center gap-2 border-l border-white/10 pl-5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-violet-500/20 text-sm font-semibold text-violet-300">
-                AS
-              </div>
-              <ChevronDown size={15} className="text-gray-500" />
-            </div>
+          <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
+            <Globe size={15} className="text-gray-500" />
+            <span className="text-xs text-gray-400">Local benchmark</span>
           </div>
         </header>
 
@@ -185,15 +167,15 @@ function App() {
                 {[
                   {
                     label: 'Specifications',
-                    value: '1',
-                    note: 'API spec parsed',
+                    value: endpoints.length > 0 ? '1' : '0',
+                    note: 'Loaded in this session',
                     icon: FileCode,
                     color: 'text-blue-400',
                     bg: 'bg-blue-400/10',
                   },
                   {
                     label: 'Endpoints',
-                    value: '3',
+                    value: endpoints.length.toString(),
                     note: 'Discovered endpoints',
                     icon: Globe,
                     color: 'text-violet-400',
@@ -201,8 +183,8 @@ function App() {
                   },
                   {
                     label: 'Tests executed',
-                    value: '2',
-                    note: 'Authorization tests',
+                    value: '—',
+                    note: 'Execution history not persisted',
                     icon: CheckCircle2,
                     color: 'text-emerald-400',
                     bg: 'bg-emerald-400/10',
@@ -332,8 +314,8 @@ function App() {
                       <p className="text-xs text-gray-500">
                         Authorization mode
                       </p>
-                      <p className="mt-1 text-sm text-emerald-400">
-                        SECURE
+                      <p className="mt-1 text-sm text-gray-300">
+                        Configured in Sentinel Bank
                       </p>
                     </div>
 
@@ -343,7 +325,9 @@ function App() {
                       </p>
                       <div className="mt-1 flex items-center gap-2 text-sm text-gray-300">
                         <Clock size={14} className="text-gray-500" />
-                        Findings persisted
+                        {findings[0]?.detectedAt
+                          ? new Date(findings[0].detectedAt).toLocaleString()
+                          : 'No findings recorded'}
                       </div>
                     </div>
                   </div>
