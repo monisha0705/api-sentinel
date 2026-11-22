@@ -1,275 +1,231 @@
 # API Sentinel — System Architecture
 
+**Research Title:** A Graph-Guided, Multi-Identity Framework for Automated Detection of Authorization and Business Logic Vulnerabilities in REST APIs
+
+**Project:** API Sentinel  
+**Architecture Status:** Implemented foundation with planned research extensions  
+**Primary Language:** Java 21  
+**Backend Framework:** Spring Boot  
+**Frontend:** React + TypeScript  
+**Database:** PostgreSQL
+
+---
+
 ## 1. Project Overview
 
-**Project:** API Sentinel
+API Sentinel is an automated REST API security testing platform designed to identify authorization weaknesses and business logic vulnerabilities through identity-aware, workflow-aware, and graph-guided security testing.
 
-**Research title:** A Graph-Guided, Multi-Identity Framework for Automated Detection of Authorization and Business Logic Vulnerabilities in REST APIs.
+The system analyzes REST API specifications, models relationships between API operations and security entities, generates security test cases, executes HTTP requests against authorized targets, and evaluates observed behavior against expected security properties.
 
-API Sentinel is an automated REST API security testing platform designed to identify authorization weaknesses and business logic vulnerabilities through identity-aware, workflow-aware, graph-guided test generation.
+The research focuses on three important vulnerability categories:
 
-The platform models API endpoints, identities, roles, resources, ownership relationships, workflow states, and security policies. It uses this model to generate security test cases, execute HTTP requests against an authorized target, and validate observed behavior against expected security invariants.
+- **Broken Object Level Authorization (BOLA):** Unauthorized access to resources belonging to another identity.
+- **Broken Function Level Authorization (BFLA):** Unauthorized access to functions or operations restricted by role or privilege.
+- **Business Logic Vulnerabilities:** Violations of valid application workflows, authorization requirements, or permitted state transitions.
 
-The system is designed as a research implementation with reproducible experiments and evidence-backed findings. It does not depend on an LLM to identify vulnerabilities.
+API Sentinel is designed as a deterministic security analysis system. Vulnerability detection relies on explicit security models, graph relationships, test generation, HTTP execution, and evidence-based validation rather than relying on an LLM to decide whether an API is vulnerable.
 
-## 2. System Objectives
+The implementation uses a separate benchmark application, Sentinel Bank, to provide controlled and reproducible security testing scenarios.
 
-The system aims to:
+## 2. Research Objectives
+
+The primary objectives are:
 
 1. Parse REST API specifications using OpenAPI.
-2. Represent test identities and their roles.
-3. Model resource ownership and access policies.
-4. Represent business workflows and valid state transitions.
+2. Extract and normalize API endpoints and operations.
+3. Represent security-relevant entities and relationships.
+4. Model identities, roles, resources, and ownership relationships.
 5. Construct a typed security graph.
-6. Generate test sequences using rule-based and graph-guided approaches.
+6. Generate security test cases using structured rules and graph relationships.
 7. Execute generated tests against authorized REST API targets.
-8. Validate HTTP responses and observable state changes against security invariants.
-9. Store execution evidence and vulnerability findings.
-10. Compare detection approaches using a controlled benchmark.
+8. Validate authorization behavior and observable workflow state changes.
+9. Detect BOLA, BFLA, and business logic vulnerabilities.
+10. Persist findings and supporting execution evidence.
+11. Develop a controlled benchmark for reproducible experiments.
+12. Evaluate the effectiveness of different test generation strategies.
 
-## 3. High-Level System Architecture
+The research aims to investigate whether graph-guided relationships and multi-identity testing can improve the detection of authorization and business logic vulnerabilities compared with simpler rule-based testing.
+
+## 3. System Architecture
 
 API Sentinel consists of three independently running applications.
 
-### 3.1 API Sentinel — Main Security Scanner
+### 3.1 API Sentinel — Security Scanner Backend
 
-The main backend is responsible for:
+The main application is developed using Java and Spring Boot.
 
-- Project and target management.
-- OpenAPI specification parsing.
-- Endpoint classification.
-- Test identity configuration.
-- Authorization and ownership modelling.
-- Workflow and state modelling.
+It is responsible for processing API specifications, constructing security models, generating tests, executing requests, validating results, and storing findings.
+
+**Implemented capabilities:**
+
+- OpenAPI specification upload and parsing.
+- API endpoint and operation processing.
 - Security graph construction.
-- Test generation and prioritization.
+- Rule-based security test generation.
 - HTTP request execution.
-- Response and state validation.
-- Finding and evidence management.
-- Report generation.
-- Research experiment execution.
+- Stateful test execution.
+- Response and observable state validation.
+- Security finding detection.
+- Finding persistence and retrieval.
 
-### 3.2 Sentinel Bank — Benchmark Target
+**Planned extensions:**
 
-Sentinel Bank is a separate REST API application created specifically for controlled security testing.
+- Complete project and target management.
+- Configurable identity and role management.
+- Persistent ownership and authorization policy configuration.
+- General-purpose workflow modelling.
+- Advanced graph-guided test exploration and prioritization.
+- Reproducible experiment orchestration.
+- Automated research reporting and export.
 
-It simulates a banking workflow with accounts, payments, customers, and administrative operations.
+### 3.2 Sentinel Bank — Benchmark Application
 
-It provides configurable vulnerable and secure implementations of selected security controls.
+Sentinel Bank is an independent REST API application developed to act as a controlled security testing target.
 
-The benchmark target is independent of the scanner. API Sentinel must interact with it exclusively through HTTP requests.
+It simulates selected banking operations using synthetic identities, accounts, and payments.
 
-The scanner must not query Sentinel Bank's database or inspect its internal implementation to determine whether a vulnerability exists.
+**Implemented capabilities:**
+
+- Payment creation.
+- Payment approval.
+- Payment retrieval.
+- Secure and vulnerable execution configurations.
+- Synthetic benchmark users and database records.
+- Stateful payment workflow testing.
+
+The benchmark provides an environment in which the scanner can test whether unauthorized identities can perform restricted operations or cause invalid workflow transitions.
+
+The scanner communicates with Sentinel Bank exclusively through HTTP requests.
+
+It must not directly inspect the benchmark application's database or internal implementation to determine whether a vulnerability exists.
 
 ### 3.3 React Frontend
 
-The frontend provides an interface for:
+The frontend is developed using React and TypeScript.
 
-- Creating projects.
-- Registering API targets.
-- Uploading OpenAPI specifications.
-- Configuring test identities.
-- Defining ownership and security policies.
-- Defining workflows and invariants.
-- Starting and monitoring scans.
-- Inspecting findings and request evidence.
-- Comparing scan modes.
-- Viewing research metrics and reports.
+It provides an interface for interacting with the scanner.
 
-The frontend is a presentation and configuration layer. The security analysis engine remains in the backend.
+**Implemented capabilities:**
 
-## 4. Architecture Diagram
+- Interaction with the scanner backend.
+- Security test generation and execution.
+- Display of detected findings.
+
+**Planned extensions:**
+
+- Project and target configuration.
+- OpenAPI specification management.
+- Identity and policy configuration.
+- Scan history and monitoring.
+- Detailed request and response evidence.
+- Research metrics and report visualization.
+
+The frontend is a presentation and configuration layer. Security analysis and vulnerability validation are performed by the backend.
+
+## 4. High-Level Architecture Diagram
 
 ```text
-                    USER
-                      |
-                      v
-             REACT FRONTEND
-                      |
-                REST / JSON
-                      |
-                      v
-              API SENTINEL
-              SPRING BOOT
-                      |
-       +--------------+--------------+
-       |              |              |
-       v              v              v
-  API INTELLIGENCE  SECURITY      PROJECT AND
-  AND OPENAPI       MODELLING     SCAN MANAGEMENT
-       |              |              |
-       +--------------+--------------+
-                      |
-                      v
-               GRAPH ENGINE
-                      |
-                      v
-              TEST GENERATOR
-                      |
-                      v
-              HTTP EXECUTOR
-                      |
-                HTTP REQUESTS
-                      |
-                      v
-               SENTINEL BANK
-                REST API
-                      |
-                      v
-              HTTP RESPONSES
-                      |
-                      v
-             RESPONSE VALIDATOR
-                      |
-                      v
-              EVIDENCE ENGINE
-                      |
-                      v
-             FINDINGS AND REPORTS
-                      |
-                      v
-                 POSTGRESQL
+                         USER
+                           |
+                           v
+                  REACT FRONTEND
+                     PORT 5173
+                           |
+                      REST / JSON
+                           |
+                           v
+                API SENTINEL BACKEND
+                  SPRING BOOT :8080
+                           |
+          +----------------+----------------+
+          |                |                |
+          v                v                v
+     OPENAPI          SECURITY TEST      FINDING
+     PROCESSING       GENERATION         MANAGEMENT
+          |                |                |
+          +----------------+----------------+
+                           |
+                           v
+                    GRAPH ENGINE
+                           |
+                           v
+                    HTTP EXECUTOR
+                           |
+                      HTTP REQUESTS
+                           |
+                           v
+                  SENTINEL BANK API
+                  SPRING BOOT :8081
+                           |
+                           v
+                    HTTP RESPONSES
+                           |
+                           v
+                  VALIDATION ENGINE
+                           |
+                           v
+                   FINDING DETECTION
+                           |
+                           v
+                    POSTGRESQL
 ```
+
+**Application boundaries:**
+
+- React frontend communicates with API Sentinel.
+- API Sentinel communicates with Sentinel Bank through HTTP.
+- API Sentinel maintains its own database.
+- Sentinel Bank maintains a separate database.
+- The scanner does not access the benchmark database directly.
 
 ## 5. Technology Stack
 
 | Layer | Technology |
 |---|---|
-| Main backend | Java 21 |
+| Main backend language | Java 21 |
 | Backend framework | Spring Boot |
-| Target application | Java 21 + Spring Boot |
-| Frontend | React + TypeScript |
+| Benchmark application | Java and Spring Boot |
+| Frontend | React 19 |
+| Frontend language | TypeScript |
 | Frontend tooling | Vite |
-| Styling | Tailwind CSS |
-| Database | PostgreSQL |
+| Database | PostgreSQL 17 |
 | Persistence | Spring Data JPA |
 | Database migrations | Flyway |
-| API specification parsing | Swagger Parser |
-| Graph algorithms | JGraphT |
-| HTTP execution | Java HttpClient |
-| Application security | Spring Security |
+| API specification | OpenAPI |
+| API parsing | Swagger Parser |
+| Graph processing | JGraphT |
+| HTTP execution | Java HTTP Client |
 | Backend testing | JUnit 5 |
-| Property-based testing | jqwik |
-| Containerization | Docker Compose |
+| Frontend development | Node.js and npm |
 
-## 6. Main Backend Modules
+The technology stack identifies the primary technologies used or specified for the implementation. Individual library usage and version compatibility should be verified against the actual dependency files before publication.
 
-The API Sentinel backend will be organized into the following logical modules.
+## 6. Main Backend Architecture
 
-### 6.1 Project Management
+The backend is organized around distinct responsibilities in the security testing pipeline.
 
-Responsibilities:
+### 6.1 OpenAPI Specification Processing
 
-- Create and manage security testing projects.
-- Associate targets, specifications, identities, policies, and scans with projects.
-- Enforce project-level data boundaries.
-
-### 6.2 Target Management
+**Purpose:** Convert an API specification into structured endpoint information.
 
 Responsibilities:
 
-- Register authorized REST API targets.
-- Store target base URLs.
-- Configure execution limits and timeouts.
-- Validate target configuration.
-- Enforce explicit authorization before scanning.
+- Accept OpenAPI specification uploads.
+- Parse API paths and HTTP methods.
+- Extract operation information.
+- Process relevant request and response definitions.
+- Identify path parameters.
+- Produce structured API information for downstream processing.
 
-### 6.3 OpenAPI Intelligence
+The parser extracts API structure. It does not assume that an endpoint is vulnerable based on its name or HTTP method.
 
-Responsibilities:
+### 6.2 Security Graph Construction
 
-- Parse OpenAPI specifications.
-- Extract paths, HTTP methods, parameters, request bodies, and response definitions.
-- Identify path parameters and potential resource identifiers.
-- Build a normalized endpoint representation.
-- Preserve the original specification for reference.
+**Purpose:** Represent relationships relevant to security testing.
 
-The parser must not assume that an endpoint is vulnerable merely because of its name or HTTP method.
+The graph provides a structured representation of API operations and security-related entities.
 
-### 6.4 Identity and Authorization Model
-
-Responsibilities:
-
-- Define test identities.
-- Associate identities with roles.
-- Configure credentials and authentication information.
-- Model endpoint access requirements.
-- Represent expected authorization relationships.
-
-Example identities:
-
-| Identity | Role | Description |
-|---|---|---|
-| Alice | CUSTOMER | Owns account 101 |
-| Bob | CUSTOMER | Owns account 202 |
-| Admin | ADMIN | Administrative test identity |
-
-### 6.5 Resource Ownership Model
-
-Responsibilities:
-
-- Represent resources and their owners.
-- Associate resources with identities.
-- Model expected ownership restrictions.
-- Generate cross-identity access tests.
-
-Example:
-
-- Alice requests her own account.
-- Alice requests Bob's account.
-- Bob requests Alice's account.
-
-The validator compares actual behavior with the configured access policy.
-
-### 6.6 Workflow Engine
-
-Responsibilities:
-
-- Define business workflows.
-- Define workflow states.
-- Define valid transitions.
-- Define operations that trigger transitions.
-- Identify invalid or unauthorized transitions.
-
-Example payment workflow:
-
-```text
-PENDING
-   |
-   +----> APPROVED
-   |
-   +----> CANCELLED
-
-APPROVED
-   |
-   +----> COMPLETED
-```
-
-The actual allowed transitions must be configurable. The diagram is an illustrative workflow, not a universal banking rule.
-
-### 6.7 Security Invariant Engine
-
-Responsibilities:
-
-- Define expected security properties.
-- Evaluate authorization requirements.
-- Validate ownership restrictions.
-- Validate role restrictions.
-- Validate workflow transition rules.
-- Produce structured validation results.
-
-Example invariants:
-
-- A customer must not access another customer's private account.
-- Only an administrator may approve a payment.
-- A completed payment must not be modified.
-- A cancelled payment must not be approved.
-
-### 6.8 Graph Engine
-
-The graph engine represents the relationships between security entities.
-
-Node types:
+Potential node categories include:
 
 - Identity
 - Role
@@ -278,65 +234,35 @@ Node types:
 - Operation
 - Workflow state
 
-Edge types:
+Potential edge relationships include:
 
-- HAS_ROLE
-- OWNS
-- CAN_ACCESS
-- INVOKES
-- TRANSITIONS_TO
-- REQUIRES_ROLE
-- OPERATES_ON
+- `HAS_ROLE`
+- `OWNS`
+- `CAN_ACCESS`
+- `INVOKES`
+- `TRANSITIONS_TO`
+- `REQUIRES_ROLE`
+- `OPERATES_ON`
 
 Responsibilities:
 
-- Build the typed security graph.
-- Maintain graph relationships.
-- Traverse graph paths.
-- Perform bounded path exploration.
-- Detect relevant identity-resource-endpoint combinations.
-- Generate candidate test sequences.
-- Prioritize tests.
-- Maintain reproducible graph snapshots.
+- Construct graph representations.
+- Maintain typed relationships.
+- Identify relevant entity combinations.
+- Support graph traversal.
+- Provide structured relationships for test generation.
 
-JGraphT will be used for graph representation and traversal algorithms.
+The implemented graph construction functionality forms the foundation for more advanced graph-guided exploration.
 
-### 6.9 Detection Engine
+Advanced graph traversal strategies, prioritization algorithms, and reproducible graph snapshots remain research extensions until implemented and experimentally verified.
 
-The detection engine will contain separate detectors for:
+### 6.3 Security Test Generation
 
-**BOLA / IDOR**
-- Test access to resources owned by different identities.
-- Compare expected and observed ownership enforcement.
+**Purpose:** Generate structured security test cases.
 
-**BFLA**
-- Test access to operations restricted to specific roles.
-- Compare the invoking identity's privileges with configured requirements.
+The implemented test generation functionality supports security scenarios involving authorization weaknesses, including BOLA and BFLA.
 
-**Business Logic Vulnerabilities**
-- Test invalid workflow transitions.
-- Test unauthorized operations.
-- Test prohibited modifications to terminal states.
-
-Each detector must use explicit policies and evidence rather than relying on endpoint naming conventions alone.
-
-### 6.10 Test Generation Engine
-
-The test generation engine will support three modes.
-
-**RULE_BASED**
-
-Generates tests using predefined authorization, ownership, and workflow rules.
-
-**GRAPH_GUIDED**
-
-Generates tests by exploring relationships and paths in the security graph.
-
-**HYBRID**
-
-Combines rule-based test generation with graph-guided exploration.
-
-Generated tests must be structured test cases containing:
+A generated test case may contain:
 
 - Test identifier.
 - Target endpoint.
@@ -345,255 +271,486 @@ Generated tests must be structured test cases containing:
 - Authentication context.
 - Request parameters.
 - Request body.
-- Expected security invariant.
+- Expected security behavior.
 - Test rationale.
-- Execution constraints.
 
-The generator produces test definitions. It does not execute HTTP requests directly.
+The generator creates test definitions. HTTP execution is handled separately.
 
-### 6.11 HTTP Execution Engine
+**Planned research extension:**
+
+Support three independently measurable test generation strategies:
+
+**RULE_BASED**
+
+Generates tests from predefined security rules and configured relationships.
+
+**GRAPH_GUIDED**
+
+Uses graph relationships and bounded graph exploration to identify relevant identity, resource, and endpoint combinations.
+
+**HYBRID**
+
+Combines rule-based generation with graph-guided exploration.
+
+These strategies must be implemented and evaluated separately before comparative research claims are made.
+
+### 6.4 HTTP Execution Engine
+
+**Purpose:** Execute generated test cases against authorized API targets.
 
 Responsibilities:
 
-- Execute generated HTTP requests.
-- Apply the configured identity's authentication context.
-- Handle request timeouts.
-- Enforce request limits.
-- Capture response status, headers, and body.
-- Record execution duration.
-- Handle connection failures.
-- Redact sensitive information.
+- Construct HTTP requests.
+- Apply the relevant test identity context.
+- Execute requests against the target API.
+- Capture response status codes.
+- Capture response information.
+- Handle execution failures.
+- Record execution evidence.
 
-Only this module is responsible for sending requests to the target API.
+The execution engine is responsible for communication with the target application.
 
-### 6.12 Validation Engine
+### 6.5 Stateful Workflow Testing
+
+**Purpose:** Evaluate security behavior across multiple related API operations.
+
+Single-request testing may not reveal business logic vulnerabilities because the security impact can depend on the state created by an earlier request.
+
+API Sentinel therefore includes stateful testing for payment operations.
+
+The implemented benchmark workflow includes:
+
+1. Creating a payment.
+2. Attempting payment approval.
+3. Retrieving the payment.
+4. Checking the resulting state.
+
+This makes it possible to evaluate not only the HTTP response but also the observable effect of an operation on application state.
+
+### 6.6 Validation Engine
+
+**Purpose:** Determine whether observed API behavior violates expected security properties.
 
 Responsibilities:
 
-- Compare observed behavior with expected security invariants.
-- Evaluate response content and relevant observable state changes.
-- Distinguish authorization failures from infrastructure failures.
-- Validate business workflow behavior.
-- Produce a structured validation result.
+- Evaluate HTTP responses.
+- Compare observed behavior with expected security behavior.
+- Evaluate observable state changes.
+- Detect unauthorized operations.
+- Identify invalid workflow transitions.
+- Distinguish unsuccessful execution from a confirmed security violation.
 
-An HTTP 200 response alone must not automatically be treated as proof of a vulnerability.
+An HTTP 200 response alone is not sufficient evidence of a vulnerability.
 
-Similarly, an HTTP 403 response alone must not automatically prove that every security invariant is correctly enforced.
+Similarly, an HTTP 403 response alone does not prove that every relevant security property is correctly enforced.
 
-### 6.13 Evidence and Findings Engine
+Validation must consider the expected operation, identity, resource, and relevant observable application state.
 
-Each finding must contain:
+### 6.7 Finding Detection and Persistence
+
+**Purpose:** Record security issues supported by execution evidence.
+
+Finding information includes:
 
 - Finding identifier.
 - Vulnerability category.
 - Affected endpoint.
-- Test identity.
-- Resource involved, where applicable.
 - Expected behavior.
 - Observed behavior.
-- Supporting request and response evidence.
-- Validation result.
-- Severity assessment.
-- Timestamp.
-- Scan identifier.
+- Supporting execution information.
+- Detection timestamp.
 
-Finding confidence states:
+The current implementation persists security findings in the API Sentinel database.
 
-- CONFIRMED
-- SUSPECTED
-- INCONCLUSIVE
+The implemented finding categories include:
 
-A confirmed finding requires sufficient evidence that the expected security property was violated.
+- BOLA
+- BFLA
+- BUSINESS_LOGIC
 
-Sensitive credentials, tokens, and personal information must be redacted from stored evidence.
+Further extensions should include richer evidence records, confidence classifications, severity assessment, scan identifiers, and exportable reports.
 
-### 6.14 Reporting and Research Engine
+### 6.8 Research Evaluation Engine
 
-Responsibilities:
+The research evaluation component is intended to compare test generation strategies under controlled conditions.
 
-- Generate scan reports.
-- Summarize detected scenarios.
-- Calculate precision, recall, and F1 score.
-- Calculate false positive rate.
-- Measure endpoint and model coverage.
-- Measure execution time.
-- Compare the three scan modes.
-- Export experiment results for analysis.
+Planned evaluation dimensions include:
 
-## 7. Sentinel Bank Benchmark Design
+- Vulnerability detection rate.
+- Precision.
+- Recall.
+- F1 score.
+- False positive rate.
+- Endpoint coverage.
+- Test generation count.
+- Execution time.
+- Resource consumption.
 
-Sentinel Bank will provide a controlled REST API with seeded test data.
+The comparison between RULE_BASED, GRAPH_GUIDED, and HYBRID approaches must use equivalent benchmark scenarios and execution budgets.
 
-### 7.1 Initial Endpoints
+Research conclusions must be based on actual experimental results rather than assumed improvements.
+
+## 7. Sentinel Bank Benchmark Architecture
+
+Sentinel Bank is a separate Spring Boot application.
+
+It acts as the target application used to evaluate API Sentinel.
+
+### 7.1 Implemented API Endpoints
 
 | Method | Endpoint | Purpose |
 |---|---|---|
-| GET | /api/accounts | List accounts |
-| GET | /api/accounts/{id} | Retrieve an account |
-| POST | /api/payments | Create a payment |
-| GET | /api/payments/{id} | Retrieve a payment |
-| PUT | /api/payments/{id} | Modify a payment |
-| POST | /api/payments/{id}/approve | Approve a payment |
-| POST | /api/payments/{id}/cancel | Cancel a payment |
-| GET | /api/admin/payments | Administrative payment listing |
+| POST | `/api/payments` | Create a payment |
+| POST | `/api/payments/{paymentId}/approve` | Approve a payment |
+| GET | `/api/payments/{paymentId}` | Retrieve a payment |
 
-### 7.2 Seeded Data
+These are the payment workflow endpoints verified in the current implementation.
 
-- Alice is a CUSTOMER and owns account 101.
-- Bob is a CUSTOMER and owns account 202.
-- Admin has the ADMIN role.
+Additional account and administrative endpoints may be introduced as the benchmark expands.
 
-The benchmark must use synthetic data only.
+### 7.2 Benchmark Identities
 
-### 7.3 Controlled Security Scenarios
+The benchmark database includes synthetic test identities and associated account records.
 
-| Scenario | Vulnerable configuration | Secure configuration |
-|---|---|---|
-| Account ownership | Missing ownership validation | Ownership enforced |
-| Payment ownership | Missing owner validation | Owner validation enforced |
-| Payment approval | Customer can approve | Admin-only approval |
-| Completed payment | Modification permitted | Modification rejected |
-| Invalid transition | Invalid transition accepted | Invalid transition rejected |
+The security testing environment includes customer identities and an administrative identity.
 
-Each scenario must have a documented ground-truth label and reproducible test procedure.
+The benchmark uses synthetic data rather than real banking information.
 
-## 8. Data and Application Boundaries
+### 7.3 Secure and Vulnerable Configurations
 
-API Sentinel and Sentinel Bank must use separate databases.
+Sentinel Bank supports controlled secure and vulnerable configurations for testing selected authorization behaviors.
 
-**API Sentinel database**
+The payment approval scenario is particularly important.
 
-Stores:
+**Secure behavior:**
 
-- Projects
-- Targets
-- API specifications
-- Test identities and credentials
-- Roles and permissions
-- Resources and ownership models
-- Policies and invariants
-- Workflows and transitions
-- Graph snapshots
-- Scans and test cases
-- Execution evidence
-- Findings and reports
+- An unauthorized customer attempts to approve a payment.
+- The API rejects the operation.
+- The payment remains in its expected state.
 
-**Sentinel Bank database**
+**Vulnerable behavior:**
 
-Stores:
+- An unauthorized customer attempts to approve a payment.
+- The API accepts the unauthorized operation.
+- The payment state changes unexpectedly.
 
-- Synthetic users
-- Accounts
-- Payments
-- Payment states
-- Benchmark configuration
+The scanner evaluates the observable HTTP behavior and payment state to identify the security violation.
 
-The scanner must not read or write the Sentinel Bank database.
+### 7.4 Ground Truth
 
-Communication between the applications must occur through the target's HTTP interface.
+Each benchmark scenario should have:
+
+- A documented vulnerability category.
+- A secure expected outcome.
+- A vulnerable expected outcome.
+- A reproducible execution procedure.
+- A ground-truth classification.
+
+Ground-truth labels are necessary for calculating detection effectiveness and false positive rates.
+
+## 8. Database Architecture
+
+API Sentinel and Sentinel Bank use separate PostgreSQL databases.
+
+### 8.1 API Sentinel Database
+
+**Database:** `api_sentinel_db`
+
+The implemented database migration creates the `security_findings` table and associated indexes.
+
+The findings table supports persistence of detected security issues.
+
+The current implementation includes indexes associated with:
+
+- Severity.
+- Vulnerability type.
+- Detection timestamp.
+
+The complete research-oriented data model is broader than the currently implemented database schema.
+
+Potential future entities include:
+
+- Projects.
+- Targets.
+- API specifications.
+- API endpoints.
+- Test identities.
+- Roles.
+- Resources.
+- Ownership relationships.
+- Security policies.
+- Workflow definitions.
+- Graph snapshots.
+- Scans.
+- Generated test cases.
+- Execution records.
+- Evidence records.
+- Findings.
+- Research experiments.
+
+These additional entities must be introduced through database migrations before they can be considered implemented persistence functionality.
+
+### 8.2 Sentinel Bank Database
+
+**Database:** `sentinel_bank_db`
+
+The benchmark application maintains its own database.
+
+Implemented migrations include tables for:
+
+- `bank_users`
+- `accounts`
+- `payments`
+- `payment_events`
+
+The database contains synthetic benchmark identities and account records used during testing.
+
+### 8.3 Database Isolation
+
+The two applications must remain logically separate.
+
+API Sentinel stores scanner information and detected findings.
+
+Sentinel Bank stores benchmark application data and payment state.
+
+Communication between the applications takes place through HTTP.
+
+The scanner must not query the Sentinel Bank database directly.
 
 ## 9. Security and Safety Requirements
 
-- Scan only targets explicitly authorized by their owners.
-- Default to local benchmark testing during development.
-- Require explicit configuration before state-changing tests.
-- Enforce request limits and timeouts.
-- Avoid uncontrolled concurrent requests.
-- Never store plaintext passwords in the database.
-- Do not log authentication tokens or passwords.
-- Redact sensitive request and response data.
-- Keep target credentials separate from ordinary application configuration.
-- Prevent scans from accessing unintended hosts.
-- Record scan configuration and execution history.
-- Provide scan cancellation.
-- Clearly distinguish confirmed findings from suspected findings.
+API Sentinel is designed for authorized security testing.
+
+The following requirements guide implementation and future development:
+
+1. Scan only explicitly authorized targets.
+2. Use the local benchmark environment during development.
+3. Require explicit configuration before executing state-changing tests against external targets.
+4. Enforce request timeouts and execution limits.
+5. Avoid uncontrolled concurrent requests.
+6. Protect stored authentication credentials.
+7. Never log plaintext passwords or authentication tokens.
+8. Redact sensitive information from execution evidence.
+9. Prevent requests from reaching unintended hosts.
+10. Record relevant scan configuration and execution history.
+11. Support safe handling of failed or interrupted executions.
+12. Distinguish confirmed findings from suspected or inconclusive results.
+
+Stateful testing must be performed with controlled test data and predictable cleanup procedures.
 
 ## 10. Deployment Architecture
 
-During development, the applications will run locally.
+During development, the applications run as separate local services.
 
-Planned services:
+| Component | Development Port |
+|---|---:|
+| React frontend | 5173 |
+| API Sentinel backend | 8080 |
+| Sentinel Bank backend | 8081 |
+| PostgreSQL | 5432 |
 
-- API Sentinel backend
-- Sentinel Bank backend
-- React frontend
-- PostgreSQL database for API Sentinel
-- PostgreSQL database for Sentinel Bank
+The two application databases are logically separated.
 
-Docker Compose will be used to define and run the complete environment.
+The frontend communicates with the scanner backend.
 
-The two databases must remain logically and operationally separate.
+The scanner backend communicates with the benchmark application through its REST API.
 
-## 11. Research Evaluation Architecture
+Docker Compose is a planned deployment mechanism for defining and running the complete environment. Its implementation and configuration should be tracked separately from the current local development setup.
 
-The research engine will compare:
+## 11. Research Evaluation Methodology
+
+The central research question is whether graph-guided, multi-identity testing can improve automated detection of authorization and business logic vulnerabilities in REST APIs.
+
+The proposed evaluation compares:
 
 1. RULE_BASED
 2. GRAPH_GUIDED
 3. HYBRID
 
-All approaches must be evaluated using equivalent:
+### 11.1 Experimental Environment
+
+The experiments should use:
+
+- A controlled benchmark application.
+- Documented vulnerability scenarios.
+- Synthetic identities.
+- Known expected outcomes.
+- Equivalent execution budgets.
+- Reproducible test configurations.
+
+### 11.2 Evaluation Metrics
+
+**True Positive (TP):** A vulnerable scenario correctly identified.
+
+**False Positive (FP):** A secure scenario incorrectly reported as vulnerable.
+
+**False Negative (FN):** A vulnerable scenario not detected.
+
+**Precision:**
+
+`TP / (TP + FP)`
+
+**Recall:**
+
+`TP / (TP + FN)`
+
+**F1 Score:**
+
+`2 × Precision × Recall / (Precision + Recall)`
+
+**False Positive Rate:**
+
+`FP / (FP + TN)`
+
+Additional metrics:
+
+- Vulnerability detection rate.
+- Endpoint coverage.
+- Security model coverage.
+- Number of generated test cases.
+- Test execution time.
+- Resource consumption.
+
+### 11.3 Experimental Fairness
+
+All approaches should be evaluated using equivalent:
 
 - Benchmark targets.
-- Ground-truth scenarios.
+- Ground-truth vulnerability scenarios.
 - Test identities.
 - Request budgets.
 - Execution time limits.
 - Network conditions.
 
-Primary metrics:
+The classification unit should be a unique ground-truth vulnerability scenario rather than an individual HTTP request.
 
-- True positives (TP)
-- False positives (FP)
-- False negatives (FN)
-- Precision
-- Recall
-- F1 score
-- False positive rate
-- Vulnerability detection rate
-- Endpoint/model coverage
-- Execution time
+Experiments should record configurations, seeds where applicable, and execution results.
 
-The classification unit will be a unique ground-truth vulnerability scenario, not an individual HTTP request.
+### 11.4 Research Limitations
 
-Experiments must use documented configurations and reproducible seeds where applicable.
+The evaluation must document:
 
-The research must report limitations and must not claim superiority without experimental evidence.
+- Benchmark coverage limitations.
+- API specification limitations.
+- Authentication and identity modelling assumptions.
+- State observability limitations.
+- Test generation constraints.
+- False positive and false negative cases.
 
-## 12. Engineering Principles
+The research must not claim that graph-guided testing is superior without supporting experimental evidence.
+
+## 12. Implementation Status
+
+The project distinguishes between implemented functionality and planned research extensions.
+
+| Component | Current status |
+|---|---|
+| Spring Boot scanner foundation | Implemented |
+| OpenAPI upload and parsing | Implemented |
+| Security graph construction | Implemented |
+| Rule-based BOLA/BFLA test generation | Implemented |
+| HTTP request execution | Implemented |
+| Stateful payment test execution | Implemented |
+| Response and state validation | Implemented |
+| Finding detection | Implemented |
+| Finding persistence | Implemented |
+| Findings retrieval | Implemented |
+| Sentinel Bank payment workflow | Implemented |
+| Secure/vulnerable benchmark configuration | Implemented |
+| React frontend | Implemented foundation |
+| Advanced graph-guided generation | Planned extension |
+| RULE_BASED / GRAPH_GUIDED / HYBRID comparison | Planned research extension |
+| Complete project and target management | Planned extension |
+| General-purpose identity and policy modelling | Planned extension |
+| Research experiment orchestration | Planned extension |
+| Automated research reporting | Planned extension |
+
+**Status note:** Implemented means the functionality has been developed and verified in the current project. Planned means it is part of the intended architecture but is not yet established as implemented functionality.
+
+This table should be updated as features are developed and tested.
+
+## 13. Engineering Principles
 
 1. Deterministic security analysis takes priority over AI-generated conclusions.
-2. Every finding must be supported by execution evidence.
+2. Every confirmed finding must be supported by execution evidence.
 3. The scanner and benchmark target must remain independent.
-4. Security policies must be explicit and configurable.
+4. Security policies must be explicit and testable.
 5. Graph exploration must be bounded and reproducible.
-6. Modules must have clear responsibilities.
-7. Every major module must have automated tests.
-8. No feature is considered complete until it is implemented and tested.
-9. Research results must be based on actual benchmark executions.
-10. Architectural decisions and implementation progress must be documented.
+6. Modules must have clearly defined responsibilities.
+7. Security test generation and HTTP execution must remain separate concerns.
+8. Stateful tests must evaluate observable application behavior.
+9. Every major feature must have automated tests.
+10. No feature is considered complete until it is implemented and verified.
+11. Research results must be based on actual benchmark executions.
+12. Architectural documentation must reflect the current implementation.
 
-## 13. Initial Implementation Order
+## 14. Future Development Roadmap
 
-The implementation will follow this order:
+The development roadmap is organized into the following stages.
 
-1. Repository and project foundation.
-2. Spring Boot backend foundations.
-3. PostgreSQL integration and Flyway migrations.
-4. Sentinel Bank REST API.
-5. OpenAPI parsing and endpoint modelling.
-6. Identity, ownership, and authorization modelling.
-7. Workflow and invariant modelling.
-8. Typed security graph construction.
-9. Rule-based test generation.
-10. Graph-guided test generation.
-11. HTTP execution engine.
-12. Response and state validation.
-13. Evidence and findings persistence.
-14. Research evaluation engine.
-15. React frontend.
-16. Integration, benchmark experiments, and reporting.
+### Stage 1 — Core Scanner Foundation
+
+- Backend project foundation.
+- PostgreSQL integration.
+- OpenAPI specification processing.
+- Security graph construction.
+- Rule-based test generation.
+- HTTP execution.
+- Finding detection and persistence.
+
+### Stage 2 — Benchmark Application
+
+- Synthetic identity configuration.
+- Payment workflow.
+- Secure and vulnerable execution modes.
+- Reproducible benchmark scenarios.
+- Ground-truth documentation.
+
+### Stage 3 — Advanced Security Modelling
+
+- General identity and role modelling.
+- Resource ownership relationships.
+- Configurable authorization policies.
+- Workflow state modelling.
+- Security invariant evaluation.
+
+### Stage 4 — Graph-Guided Testing
+
+- Advanced graph traversal.
+- Bounded path exploration.
+- Identity-resource-operation relationship analysis.
+- Graph-guided test generation.
+- Test prioritization.
+
+### Stage 5 — Research Evaluation
+
+- Independent rule-based implementation.
+- Graph-guided implementation.
+- Hybrid implementation.
+- Controlled benchmark experiments.
+- Precision, recall, F1, and coverage analysis.
+- Reproducibility and statistical analysis.
+
+### Stage 6 — Frontend and Reporting Extensions
+
+- Complete project and target management.
+- Scan history and monitoring.
+- Detailed execution evidence.
+- Research metric visualization.
+- Report generation and export.
+
+The roadmap describes intended development work. Completion of a stage requires implementation, testing, and documentation.
+
+## 15. Conclusion
+
+API Sentinel provides an implementation foundation for automated REST API security testing using structured security models, graph construction, multi-identity test generation, HTTP execution, and evidence-based validation.
+
+Its separate benchmark application enables controlled testing of authorization weaknesses and stateful business logic vulnerabilities.
+
+The research direction extends this foundation toward advanced graph-guided test generation and comparative evaluation against rule-based and hybrid approaches.
+
+The architecture is intended to evolve alongside the implementation. All research claims and implementation status statements must be supported by verifiable code and experimental evidence.
 
 ---
 
-**Architecture status:** Design documented. Implementation and verification are tracked separately.
+**Architecture Status:** Core security testing pipeline implemented; advanced graph-guided research capabilities and broader platform functionality remain under development.
