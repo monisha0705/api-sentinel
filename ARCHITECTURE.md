@@ -254,6 +254,8 @@ Responsibilities:
 - Support graph traversal.
 - Provide structured relationships for test generation.
 
+The current graph builder is benchmark-specific. It uses fixed Alice, Bob, and Admin identities, fixed synthetic account ownership, and endpoint-path heuristics for the account and payment routes. It does not yet infer arbitrary authorization policies from an uploaded OpenAPI specification.
+
 The implemented graph construction functionality forms the foundation for more advanced graph-guided exploration.
 
 Advanced graph traversal strategies, prioritization algorithms, and reproducible graph snapshots remain research extensions until implemented and experimentally verified.
