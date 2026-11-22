@@ -10,6 +10,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.UUID;
@@ -33,7 +34,9 @@ public class HttpTestExecutionService {
     private String adminPassword;
 
     public HttpTestExecutionService() {
-        this.httpClient = HttpClient.newHttpClient();
+        this.httpClient = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(5))
+                .build();
         this.objectMapper = new ObjectMapper();
     }
 
@@ -53,7 +56,10 @@ public class HttpTestExecutionService {
             String endpoint = testCase.endpoint();
 
             if (endpoint == null || !endpoint.startsWith("/")
-                    || endpoint.startsWith("//")) {
+                    || endpoint.startsWith("//")
+                    || endpoint.contains("?")
+                    || endpoint.contains("#")
+                    || endpoint.contains("\\")) {
                 throw new IllegalArgumentException(
                         "Endpoint must be an absolute path starting with /"
                 );
@@ -206,9 +212,28 @@ public class HttpTestExecutionService {
                         credentials.getBytes(StandardCharsets.UTF_8)
                 );
 
-        URI uri = URI.create(
-                targetBaseUrl.replaceAll("/+$", "") + endpoint
-        );
+        URI baseUri = URI.create(targetBaseUrl);
+
+        if (baseUri.getHost() == null
+                || !("http".equalsIgnoreCase(baseUri.getScheme())
+                        || "https".equalsIgnoreCase(baseUri.getScheme()))
+                || baseUri.getUserInfo() != null
+                || baseUri.getQuery() != null
+                || baseUri.getFragment() != null) {
+            throw new IllegalStateException(
+                    "Target base URL must be an HTTP(S) URL without user info, query, or fragment"
+            );
+        }
+
+        URI uri = baseUri.resolve(endpoint);
+
+        if (!baseUri.getScheme().equalsIgnoreCase(uri.getScheme())
+                || !baseUri.getHost().equalsIgnoreCase(uri.getHost())
+                || baseUri.getPort() != uri.getPort()) {
+            throw new IllegalArgumentException(
+                    "Test endpoint must remain on the configured target host"
+            );
+        }
 
         HttpRequest.BodyPublisher bodyPublisher =
                 requestBody == null
@@ -219,6 +244,7 @@ public class HttpTestExecutionService {
 
         HttpRequest.Builder builder = HttpRequest.newBuilder()
                 .uri(uri)
+                .timeout(Duration.ofSeconds(15))
                 .header("Authorization", authorization)
                 .header("Accept", "application/json");
 
