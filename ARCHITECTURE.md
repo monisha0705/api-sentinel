@@ -190,6 +190,8 @@ The frontend is a presentation and configuration layer. Security analysis and vu
 | Frontend | React 19 |
 | Frontend language | TypeScript |
 | Frontend tooling | Vite |
+| Graph visualization | React Flow (`@xyflow/react`) |
+| Frontend icons | Lucide React |
 | Database | PostgreSQL 17 |
 | Persistence | Spring Data JPA |
 | Database migrations | Flyway |
