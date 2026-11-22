@@ -21,7 +21,7 @@ public class HttpTestExecutionService {
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
 
-    @Value("${sentinel.target.base-url:http://localhost:8081}")
+    @Value("${sentinel.target.base-url:http://127.0.0.1:8081}")
     private String targetBaseUrl;
 
     @Value("${sentinel.credentials.alice:}")
