@@ -4,9 +4,9 @@
 *.class
 
 # Node / React
-.sentinel-frontend/
 **/node_modules/
 **/dist/
+.sentinel-frontend/
 
 # Environment variables and secrets
 .env
@@ -28,8 +28,5 @@ sentinel-backend/generated-tests.json
 
 # Logs
 *.log
-<<<<<<< HEAD
-=======
+
 # Local Vite cache
-.sentinel-frontend/
->>>>>>> 6f65c21 (feat: complete security findings dashboard and persistence updates)
