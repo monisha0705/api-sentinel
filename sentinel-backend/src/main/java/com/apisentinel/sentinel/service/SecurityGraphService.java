@@ -49,13 +49,13 @@ public class SecurityGraphService {
 
         // Resource nodes
         GraphNode aliceAccount = node(
-                "account-101", NodeType.RESOURCE, "Account 101",
-                "Synthetic account owned by Alice"
+                "account-203", NodeType.RESOURCE, "Account 203",
+                "Synthetic account owned by the isolated sentinel_alice identity"
         );
 
         GraphNode bobAccount = node(
-                "account-202", NodeType.RESOURCE, "Account 202",
-                "Synthetic account owned by Bob"
+                "account-204", NodeType.RESOURCE, "Account 204",
+                "Synthetic account owned by the isolated sentinel_bob identity"
         );
 
         GraphNode payments = node(
