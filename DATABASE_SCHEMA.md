@@ -14,7 +14,7 @@ One PostgreSQL 17 server currently hosts two independent databases.
 
 | Database | Owner / application role | Purpose |
 |---|---|---|
-| api_sentinel_db | sentinel_app | Security scanner, projects, policies, scans, findings, and research results |
+| api_sentinel_db | sentinel_app | API Sentinel scanner and persisted security findings |
 | sentinel_bank_db | bank_app | Synthetic banking users, accounts, and payments |
 
 The applications use separate database connections and credentials.
