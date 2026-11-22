@@ -32,6 +32,8 @@ Scanner endpoints use the `/api/v1` prefix. Sentinel Bank is a separate target s
 
 Content type: `multipart/form-data`
 
+Upload limit: 5 MB per request. External `$ref` resources are not resolved by the parser; include required definitions in the uploaded document or use local references.
+
 Form field:
 
 | Name | Type | Description |
