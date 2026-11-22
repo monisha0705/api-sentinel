@@ -10,8 +10,8 @@ It is an implementation reference, not a specification of every planned platform
 
 | Service | Default base URL | Purpose |
 |---|---|---|
-| API Sentinel backend | `http://localhost:8080` | Specification parsing, graph construction, test generation/execution, finding detection and retrieval |
-| Sentinel Bank benchmark | `http://localhost:8081` | Target REST API exercised by the scanner |
+| API Sentinel backend | `http://127.0.0.1:8080` | Specification parsing, graph construction, test generation/execution, finding detection and retrieval |
+| Sentinel Bank benchmark | `http://127.0.0.1:8081` | Target REST API exercised by the scanner |
 | Frontend dev server | `http://localhost:5173` | React application; development proxy forwards `/api` and `/actuator` to the backend |
 
 Scanner endpoints use the `/api/v1` prefix. Sentinel Bank is a separate target service and its routes do not use that scanner prefix.
