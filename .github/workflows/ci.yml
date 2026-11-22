@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Create isolated application and test databases
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE ROLE sentinel_app LOGIN PASSWORD 'scanner-ci-password';
+          CREATE ROLE bank_app LOGIN PASSWORD 'bank-ci-password';
+          CREATE DATABASE api_sentinel_db OWNER sentinel_app;
+          CREATE DATABASE api_sentinel_test_db OWNER sentinel_app;
+          CREATE DATABASE sentinel_bank_db OWNER bank_app;
+          SQL
+
+      - name: Test API Sentinel backend
+        env:
+          API_SENTINEL_DB_PASSWORD: scanner-ci-password
+          API_SENTINEL_ALICE_PASSWORD: ci-alice-password
+          API_SENTINEL_BOB_PASSWORD: ci-bob-password
+          API_SENTINEL_ADMIN_PASSWORD: ci-admin-password
+        run: mvn -f sentinel-backend/pom.xml test
+
+      - name: Test Sentinel Bank
+        env:
+          SENTINEL_BANK_DB_PASSWORD: bank-ci-password
+          SENTINEL_BANK_AUTHORIZATION_MODE: SECURE
+        run: mvn -f sentinel-bank/pom.xml test
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: sentinel-frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: sentinel-frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: sentinel-frontend
+        run: npm run build
