@@ -92,6 +92,15 @@ function TestRunsPage({ endpoints }: TestRunsPageProps) {
   const [error, setError] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
 
+  const approvalStep = statefulResult?.steps.find(
+    (step) => step.testId === 'BL-001-APPROVE'
+  )
+  const statefulViolationConfirmed = Boolean(
+    statefulResult &&
+    (statefulResult.finalState !== statefulResult.expectedFinalState ||
+      (approvalStep && approvalStep.actualStatus >= 200 && approvalStep.actualStatus < 300))
+  )
+
   const generateTests = async () => {
     if (endpoints.length === 0) {
       setError('Upload an OpenAPI specification first.')
@@ -316,15 +325,25 @@ try {
               </div>
             </div>
 
-            <div className={`rounded-lg p-4 ${statefulResult.invariantPreserved ? 'bg-emerald-950/50 text-emerald-300' : 'bg-red-950/50 text-red-300'}`}>
+            <div className={`rounded-lg p-4 ${statefulResult.invariantPreserved ? 'bg-emerald-950/50 text-emerald-300' : statefulViolationConfirmed ? 'bg-red-950/50 text-red-300' : 'bg-amber-950/50 text-amber-300'}`}>
               <div className="flex items-center gap-2 font-medium">
-                {statefulResult.invariantPreserved ? <CheckCircle2 size={18} /> : <XCircle size={18} />}
-                Security invariant {statefulResult.invariantPreserved ? 'preserved' : 'violated'}
+                {statefulResult.invariantPreserved
+                  ? <CheckCircle2 size={18} />
+                  : statefulViolationConfirmed
+                    ? <XCircle size={18} />
+                    : <AlertTriangle size={18} />}
+                {statefulResult.invariantPreserved
+                  ? 'Security invariant preserved'
+                  : statefulViolationConfirmed
+                    ? 'Security invariant violated'
+                    : 'Execution inconclusive'}
               </div>
               <p className="mt-1 text-sm opacity-80">
- {statefulResult.invariantPreserved
+                {statefulResult.invariantPreserved
                   ? 'Unauthorized approval was rejected and payment state remained unchanged.'
-                  : 'Unauthorized approval changed the payment state. The expected security invariant was violated.'}
+                  : statefulViolationConfirmed
+                    ? 'The unauthorized operation was accepted or the payment moved to an unexpected state.'
+                    : 'The request did not establish whether authorization was bypassed. Review the response evidence and rerun the scenario.'}
               </p>
             </div>
 
