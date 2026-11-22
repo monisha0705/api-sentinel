@@ -131,7 +131,8 @@ public class StatefulPaymentTestExecutionService {
                     verificationResponse.path("status").asText();
 
             boolean invariantPreserved =
-                    "PENDING".equals(initialState)
+                    approvalResult.actualStatus() == 403
+                            && "PENDING".equals(initialState)
                             && "PENDING".equals(finalState);
 
             List<TestExecutionResult> steps = List.of(
