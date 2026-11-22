@@ -100,6 +100,17 @@ public class FindingDetectionService {
             return List.of();
         }
 
+        boolean unauthorizedOperationAccepted =
+                approvalStep.actualStatus() >= 200
+                        && approvalStep.actualStatus() < 300;
+        boolean unexpectedStateTransition =
+                !result.expectedFinalState().equals(result.finalState());
+
+        // A server error or blocked request is not, by itself, proof of a vulnerability.
+        if (!unauthorizedOperationAccepted && !unexpectedStateTransition) {
+            return List.of();
+        }
+
         String evidence = result.steps().stream()
                 .map(step -> step.testId()
                         + " | Expected HTTP: " + step.expectedStatus()
