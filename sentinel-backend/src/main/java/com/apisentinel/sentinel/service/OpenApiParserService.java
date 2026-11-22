@@ -20,7 +20,9 @@ public class OpenApiParserService {
     public List<EndpointSummary> parse(String specification) {
 
         ParseOptions options = new ParseOptions();
-        options.setResolve(true);
+        // Do not resolve external references: uploaded specifications are untrusted input.
+        // This prevents the parser from making server-side requests to arbitrary URLs.
+        options.setResolve(false);
 
         SwaggerParseResult result =
                 new OpenAPIV3Parser().readContents(
