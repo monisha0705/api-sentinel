@@ -101,6 +101,8 @@ The current implementation provides the following capabilities.
 - Construct security-related relationships.
 - Provide a graph representation for security testing.
 
+The current graph is benchmark-specific: it uses the synthetic Alice, Bob, and Admin identities, fixed benchmark account ownership, and endpoint-path heuristics. It does not yet infer arbitrary authorization policies from an uploaded OpenAPI document.
+
 ### Security test generation
 
 - Generate BOLA test cases.
@@ -516,6 +518,14 @@ npm run build
 ```
 
 The frontend build runs TypeScript project compilation followed by the Vite production build.
+
+### Run Sentinel Bank tests
+
+```powershell
+mvn -f .\sentinel-bank\pom.xml test
+```
+
+The Sentinel Bank test context uses the configured benchmark database. Keep the scanner integration-test database separate from the application database.
 
 Record actual test and build results when documenting a release or research milestone.
 
