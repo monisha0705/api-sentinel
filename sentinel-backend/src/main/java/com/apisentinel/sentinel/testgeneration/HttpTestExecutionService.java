@@ -41,6 +41,7 @@ public class HttpTestExecutionService {
 
         String identity = testCase.identity();
         String password = getPassword(identity);
+        String targetUsername = getTargetUsername(identity);
 
         if (password == null || password.isBlank()) {
             throw new IllegalStateException(
@@ -60,17 +61,18 @@ public class HttpTestExecutionService {
 
             if (endpoint.equals("/api/payments/{id}/approve")) {
 
-                // Admin cannot create a payment because admin does not
-                // own a customer account. Alice creates the fixture.
                 String fixtureIdentity =
                         identity.equalsIgnoreCase("admin")
                                 ? "alice"
                                 : identity;
 
                 String fixturePassword = getPassword(fixtureIdentity);
+                String fixtureUsername =
+                        getTargetUsername(fixtureIdentity);
 
                 UUID paymentId = createPaymentAndResolveId(
                         fixtureIdentity,
+                        fixtureUsername,
                         fixturePassword
                 );
 
@@ -78,7 +80,7 @@ public class HttpTestExecutionService {
             }
 
             HttpResponse<String> response = sendRequest(
-                    identity,
+                    targetUsername,
                     testCase.method(),
                     endpoint,
                     password,
@@ -125,14 +127,26 @@ public class HttpTestExecutionService {
         };
     }
 
+    private String getTargetUsername(String identity) {
+        return switch (identity.toLowerCase()) {
+            case "alice" -> "sentinel_alice";
+            case "bob" -> "sentinel_bob";
+            case "admin" -> "sentinel_admin";
+            default -> throw new IllegalArgumentException(
+                    "Unsupported benchmark identity: " + identity
+            );
+        };
+    }
+
     private UUID createPaymentAndResolveId(
             String identity,
+            String targetUsername,
             String password
     ) throws Exception {
 
         int accountId = switch (identity.toLowerCase()) {
-            case "alice" -> 101;
-            case "bob" -> 202;
+            case "alice" -> 203;
+            case "bob" -> 204;
             default -> throw new IllegalArgumentException(
                     "Payment fixture identity must be Alice or Bob"
             );
@@ -148,7 +162,7 @@ public class HttpTestExecutionService {
                 """.formatted(identity.toUpperCase(), accountId);
 
         HttpResponse<String> response = sendRequest(
-                identity,
+                targetUsername,
                 "POST",
                 "/api/payments",
                 password,
@@ -178,14 +192,14 @@ public class HttpTestExecutionService {
     }
 
     private HttpResponse<String> sendRequest(
-            String identity,
+            String username,
             String method,
             String endpoint,
             String password,
             String requestBody
     ) throws Exception {
 
-        String credentials = identity + ":" + password;
+        String credentials = username + ":" + password;
 
         String authorization = "Basic " +
                 Base64.getEncoder().encodeToString(

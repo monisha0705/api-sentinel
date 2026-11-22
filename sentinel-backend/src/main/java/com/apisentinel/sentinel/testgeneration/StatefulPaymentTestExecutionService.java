@@ -37,7 +37,7 @@ public class StatefulPaymentTestExecutionService {
                     "amount": 250.00,
                     "currency": "INR",
                     "beneficiaryReference": "API-SENTINEL-BL-001",
-                    "sourceAccountId": 101
+                    "sourceAccountId": 203
                 }
                 """,
                 null,
