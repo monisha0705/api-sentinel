@@ -91,7 +91,7 @@ class HttpTestExecutionServiceTest {
         TestExecutionResult result = executionService.execute(testCase);
 
         String expectedCredentials = Base64.getEncoder().encodeToString(
-                "alice:alice-test-password".getBytes(StandardCharsets.UTF_8)
+                "sentinel_alice:alice-test-password".getBytes(StandardCharsets.UTF_8)
         );
 
         assertEquals("Basic " + expectedCredentials, receivedAuthorization);
@@ -111,7 +111,7 @@ class HttpTestExecutionServiceTest {
         TestExecutionResult result = executionService.execute(testCase);
 
         String expectedCredentials = Base64.getEncoder().encodeToString(
-                "bob:bob-test-password".getBytes(StandardCharsets.UTF_8)
+                "sentinel_bob:bob-test-password".getBytes(StandardCharsets.UTF_8)
         );
 
         assertEquals("Basic " + expectedCredentials, receivedAuthorization);
@@ -203,7 +203,7 @@ class HttpTestExecutionServiceTest {
         TestExecutionResult result = executionService.execute(testCase);
 
         String expectedCredentials = Base64.getEncoder().encodeToString(
-                "admin:admin-test-password".getBytes(StandardCharsets.UTF_8)
+                "sentinel_admin:admin-test-password".getBytes(StandardCharsets.UTF_8)
         );
 
         assertEquals("Basic " + expectedCredentials, receivedAuthorization);
