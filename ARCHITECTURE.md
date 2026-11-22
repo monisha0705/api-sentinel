@@ -107,17 +107,19 @@ It provides an interface for interacting with the scanner.
 
 **Implemented capabilities:**
 
-- Interaction with the scanner backend.
+- Overview dashboard.
+- OpenAPI specification upload and endpoint listing.
+- Security graph visualization.
 - Security test generation and execution.
-- Display of detected findings.
+- Test execution result display.
+- Persisted finding retrieval and display.
 
 **Planned extensions:**
 
-- Project and target configuration.
-- OpenAPI specification management.
-- Identity and policy configuration.
-- Scan history and monitoring.
-- Detailed request and response evidence.
+- Project and target configuration beyond the current benchmark defaults.
+- Configurable identity, role, ownership, and policy management.
+- Persistent scan history and monitoring.
+- Detailed request and response evidence views.
 - Research metrics and report visualization.
 
 The frontend is a presentation and configuration layer. Security analysis and vulnerability validation are performed by the backend.
