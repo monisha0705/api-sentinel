@@ -3,6 +3,7 @@ package com.apisentinel.sentinel.finding;
 
 import com.apisentinel.sentinel.testgeneration.SecurityTestCase;
 import com.apisentinel.sentinel.testgeneration.TestExecutionResult;
+import com.apisentinel.sentinel.testgeneration.StatefulPaymentTestExecutionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -176,6 +177,67 @@ class FindingDetectionServiceTest {
         assertTrue(findings.stream().anyMatch(
                 finding -> finding.identity().equals("bob")
         ));
+    }
+
+
+    @Test
+    void shouldDetectAcceptedUnauthorizedApprovalEvenWhenStateDoesNotChange() {
+        TestExecutionResult approvalStep = new TestExecutionResult(
+                "BL-001-APPROVE",
+                "alice",
+                "/api/payments/test-payment/approve",
+                403,
+                200,
+                false,
+                "{\"status\":\"PENDING\"}",
+                Instant.now()
+        );
+
+        StatefulPaymentTestExecutionService.StatefulTestExecutionResult result =
+                new StatefulPaymentTestExecutionService.StatefulTestExecutionResult(
+                        "BL-001",
+                        "Unauthorized payment approval",
+                        "test-payment",
+                        "PENDING",
+                        "PENDING",
+                        "PENDING",
+                        false,
+                        false,
+                        List.of(approvalStep),
+                        Instant.now()
+                );
+
+        assertEquals(1, detectionService.detectStatefulFinding(result).size());
+    }
+
+    @Test
+    void shouldNotTreatServerErrorAsConfirmedUnauthorizedApproval() {
+        TestExecutionResult approvalStep = new TestExecutionResult(
+                "BL-001-APPROVE",
+                "alice",
+                "/api/payments/test-payment/approve",
+                403,
+                500,
+                false,
+                "Internal server error",
+                Instant.now()
+        );
+
+        StatefulPaymentTestExecutionService.StatefulTestExecutionResult result =
+                new StatefulPaymentTestExecutionService.StatefulTestExecutionResult(
+                        "BL-001",
+                        "Unauthorized payment approval",
+                        "test-payment",
+                        "PENDING",
+                        "PENDING",
+                        "PENDING",
+                        false,
+                        false,
+                        List.of(approvalStep),
+                        Instant.now()
+                );
+
+        assertTrue(detectionService.detectStatefulFinding(result).isEmpty());
     }
 
     private SecurityTestCase createTestCase(
