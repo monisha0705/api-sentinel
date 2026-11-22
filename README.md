@@ -370,12 +370,15 @@ cd api-sentinel
 
 ### Database preparation
 
-Create two separate PostgreSQL databases:
+Create the two application databases and a separate scanner test database:
 
-| Application | Database | Database user |
+| Purpose | Database | Database user |
 |---|---|---|
-| API Sentinel | `api_sentinel_db` | `sentinel_app` |
-| Sentinel Bank | `sentinel_bank_db` | `bank_app` |
+| API Sentinel application | `api_sentinel_db` | `sentinel_app` |
+| Sentinel Bank benchmark | `sentinel_bank_db` | `bank_app` |
+| API Sentinel integration tests (test-only) | `api_sentinel_test_db` | `sentinel_app` |
+
+The test database is used by the backend integration-test profile and must be created before running the backend test suite. Do not point integration tests at a database containing data you need to preserve.
 
 Use separate database users with only the permissions required by their respective applications.
 
