@@ -245,6 +245,37 @@ class HttpTestExecutionServiceTest {
         assertTrue(result.passed());
     }
 
+
+    @Test
+    void shouldRejectEndpointContainingQueryOrFragment() {
+        SecurityTestCase testCase = createTestCase(
+                "alice", "/api/accounts/202?admin=true", 200
+        );
+
+        assertThrows(
+                IllegalStateException.class,
+                () -> executionService.execute(testCase)
+        );
+    }
+
+    @Test
+    void shouldRejectTargetBaseUrlContainingCredentials() {
+        ReflectionTestUtils.setField(
+                executionService,
+                "targetBaseUrl",
+                "http://user:password@localhost:" + server.getAddress().getPort()
+        );
+
+        SecurityTestCase testCase = createTestCase(
+                "alice", "/api/accounts/202", 200
+        );
+
+        assertThrows(
+                IllegalStateException.class,
+                () -> executionService.execute(testCase)
+        );
+    }
+
     private SecurityTestCase createTestCase(
             String identity,
             String endpoint,
