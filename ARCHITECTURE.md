@@ -529,16 +529,19 @@ The following requirements guide implementation and future development:
 
 1. Scan only explicitly authorized targets.
 2. Use the local benchmark environment during development.
-3. Require explicit configuration before executing state-changing tests against external targets.
-4. Enforce request timeouts and execution limits.
-5. Avoid uncontrolled concurrent requests.
-6. Protect stored authentication credentials.
-7. Never log plaintext passwords or authentication tokens.
-8. Redact sensitive information from execution evidence.
-9. Prevent requests from reaching unintended hosts.
-10. Record relevant scan configuration and execution history.
-11. Support safe handling of failed or interrupted executions.
-12. Distinguish confirmed findings from suspected or inconclusive results.
+3. Bind the scanner and benchmark services to loopback interfaces by default; expose them only behind appropriate authentication and network controls.
+4. Do not resolve remote references from uploaded OpenAPI documents.
+5. Limit uploaded specification size.
+6. Validate the configured target URL and keep test requests on that configured host.
+7. Enforce connection and request timeouts.
+8. Require explicit configuration before executing state-changing tests against external targets.
+9. Avoid uncontrolled concurrent requests.
+10. Protect stored authentication credentials.
+11. Never log plaintext passwords or authentication tokens.
+12. Redact sensitive information from execution evidence.
+13. Record relevant scan configuration and execution history.
+14. Support safe handling of failed or interrupted executions.
+15. Distinguish confirmed findings from suspected or inconclusive results.
 
 Stateful testing must be performed with controlled test data and predictable cleanup procedures.
 
